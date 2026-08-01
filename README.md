@@ -4,9 +4,7 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early design/prototyping stage — no firmware has been written yet. Level shifting (SN74LVC245A) between a host Z80 system and the Pico has been breadboarded and proven; firmware development (USB CDC via TinyUSB, native register-mapped bus interface) is the current focus.
-
-This README will be filled out with build instructions, example schematic, and usage once there's working firmware to document.
+Early prototyping stage. The build toolchain is proven end-to-end (CMake + pico-sdk + a blink smoke test builds, flashes, and runs on both a plain Pico and a Pico 2 W), but the actual USB terminal bridge firmware (TinyUSB CDC, native register-mapped bus interface) hasn't been written yet. Level shifting (SN74LVC245A) between a host Z80 system and the Pico has been breadboarded and proven separately.
 
 ## Overview
 
@@ -16,6 +14,43 @@ The Pico acts as a transparent byte pipe between a host terminal (via USB CDC �
 
 - Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants for the future Wi-Fi option
 - SN74LVC245A octal buffer/level shifter (5V Z80 bus <-> 3.3V Pico)
+
+## Building
+
+Requirements (macOS via Homebrew):
+
+```sh
+brew install cmake
+brew install --cask gcc-arm-embedded
+brew install picotool
+```
+
+Clone with submodules:
+
+```sh
+git clone https://github.com/PainfulDiodes/beanport.git
+./beanport/init-submodules.sh
+```
+
+`pico-sdk` is vendored as a submodule, pulled selectively (only `lib/tinyusb`, not `mbedtls`/`lwip`/`btstack`/`cyw43-driver`) since those aren't needed until a future Wi-Fi variant.
+
+Build:
+
+```sh
+mkdir build && cd build
+cmake ..
+cmake --build .
+```
+
+Output binaries land in `build/src/`.
+
+## Deploying
+
+```sh
+./deploy.sh [path-to-uf2]
+```
+
+Uses `picotool load -f -x` — forces the device into BOOTSEL mode if it's currently running application code (no need to hold the physical button), loads the firmware, and reboots into it. This only works if the running firmware exposes USB (e.g. via TinyUSB/`pico_stdio_usb`); otherwise put the Pico in BOOTSEL mode manually first (hold BOOTSEL while plugging in).
 
 ## License
 
