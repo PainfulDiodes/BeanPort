@@ -1,4 +1,5 @@
 #include "pico/stdlib.h"
+#include <ctype.h>
 #include <stdio.h>
 
 int main() {
@@ -6,6 +7,6 @@ int main() {
 
     while (true) {
         int c = getchar();
-        putchar(c);
+        putchar(toupper(c));
     }
 }
