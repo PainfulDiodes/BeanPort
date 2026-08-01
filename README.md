@@ -4,7 +4,9 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early prototyping stage. The build toolchain is proven end-to-end (CMake + pico-sdk + an LED-blink smoke test, currently the `beanport` target, builds, flashes, and runs on both a plain Pico and a Pico 2 W), but the actual USB terminal bridge firmware (TinyUSB CDC, native register-mapped bus interface) hasn't been written yet. Level shifting (SN74LVC245A) between a host Z80 system and the Pico has been breadboarded and proven separately.
+Early prototyping stage, but past the toolchain-only milestone: real Z80 data has been verified flowing end-to-end - BeanBoard GPIO output -> SN74LVC245A level shifter -> Pico GPIO input -> USB. The current `beanport` firmware echoes typed characters back over USB (uppercased, to prove it's actually round-tripping through the Pico) and, on each keystroke, reads GP0-GP7 (D0-D7 from the level shifter) and prints the byte as a hex pair - confirmed against known values sent by a BeanBoard test program (`0x55`, then `0x44`).
+
+Still exploratory, not the final bridge protocol: capture is a free-running poll (not synced to WR#/IORQ#), no address decoding/port discrimination yet, no write path back to the Z80, no PIO.
 
 ## Overview
 
