@@ -32,7 +32,7 @@ git clone https://github.com/PainfulDiodes/beanport.git
 ./beanport/init-submodules.sh
 ```
 
-`pico-sdk` is vendored as a submodule, pulled selectively (only `lib/tinyusb`, not `mbedtls`/`lwip`/`btstack`/`cyw43-driver`) since those aren't needed until a future Wi-Fi variant.
+`pico-sdk` is vendored as a submodule, along with all of its own submodules (TinyUSB, mbedtls, lwip, btstack, cyw43-driver).
 
 Build:
 
@@ -41,8 +41,6 @@ Build:
 ```
 
 `board` defaults to `pico` (other options: `pico_w`, `pico2`, `pico2_w`). Each board gets its own build directory (`build/<board>/`). Output binaries land in `build/<board>/bin/`.
-
-`pico_w`/`pico2_w` builds additionally require the `cyw43-driver` submodule, which isn't pulled by default - see `init-submodules.sh`.
 
 To remove build artefacts:
 
