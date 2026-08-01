@@ -1,2 +1,11 @@
 .DS_Store
-build/
+
+# Keep the .uf2 for every board (the deployable artefact), ignore
+# everything else under build/ (elf/bin/hex/map/dis, CMake cache/files,
+# pico-sdk's own generated headers/linker scripts/pioasm sub-build, etc).
+build/*
+!build/*/
+build/*/*
+!build/*/bin/
+build/*/bin/*
+!build/*/bin/*.uf2
