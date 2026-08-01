@@ -9,4 +9,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+# pico-sdk's UF2 output follows ARCHIVE_OUTPUT_DIRECTORY, not
+# RUNTIME_OUTPUT_DIRECTORY like everything else it generates - both need
+# setting to collect all outputs (elf/bin/hex/map/dis/uf2) in one place.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 add_subdirectory(src)

@@ -4,7 +4,7 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early prototyping stage. The build toolchain is proven end-to-end (CMake + pico-sdk + a blink smoke test builds, flashes, and runs on both a plain Pico and a Pico 2 W), but the actual USB terminal bridge firmware (TinyUSB CDC, native register-mapped bus interface) hasn't been written yet. Level shifting (SN74LVC245A) between a host Z80 system and the Pico has been breadboarded and proven separately.
+Early prototyping stage. The build toolchain is proven end-to-end (CMake + pico-sdk + an LED-blink smoke test, currently the `beanport` target, builds, flashes, and runs on both a plain Pico and a Pico 2 W), but the actual USB terminal bridge firmware (TinyUSB CDC, native register-mapped bus interface) hasn't been written yet. Level shifting (SN74LVC245A) between a host Z80 system and the Pico has been breadboarded and proven separately.
 
 ## Overview
 
@@ -37,12 +37,16 @@ git clone https://github.com/PainfulDiodes/beanport.git
 Build:
 
 ```sh
-mkdir build && cd build
-cmake ..
-cmake --build .
+./build.sh [board]
 ```
 
-Output binaries land in `build/src/`.
+`board` defaults to `pico` (other options: `pico_w`, `pico2`, `pico2_w`). Output binaries land in `build/bin/`.
+
+To remove build artefacts:
+
+```sh
+./clean.sh
+```
 
 ## Deploying
 

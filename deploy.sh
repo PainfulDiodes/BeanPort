@@ -2,7 +2,7 @@
 
 # Deploy a built .uf2 to a connected Pico via picotool.
 # Usage: ./deploy.sh [path-to-uf2]
-# path defaults to build/src/blink.uf2
+# path defaults to build/bin/beanport.uf2
 #
 # Loads the firmware and reboots into it. Forces the device into BOOTSEL
 # mode first if it's currently running application code, so there's no
@@ -12,6 +12,6 @@
 
 set -e
 
-UF2=${1:-build/src/blink.uf2}
+UF2=${1:-build/bin/beanport.uf2}
 
 picotool load "$UF2" -f -x
