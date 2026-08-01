@@ -12,6 +12,14 @@ Still exploratory, not the final bridge protocol: capture is a free-running poll
 
 The Pico acts as a transparent byte pipe between a host terminal (via USB CDC — driverless on macOS, Linux, and Windows) and an 8-bit system's bus. Primary target: a native interface (STATUS/DATA ports) for the BeanZee/BeanDeck homebrew computer.
 
+## Future Directions
+
+- **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket
+- **Wi-Fi console** — on Pico W / Pico 2 W hardware
+- **RC2014 bus card** — packaging as a card for the RC2014 backplane
+
+A UART (TX/RX, optional CTS/RTS) passthrough mode is also worth adding opportunistically — it reuses the same USB/level-shifting infrastructure at near-zero marginal cost — but isn't a standalone justification the way the others are: commodity USB-UART adapters (CH340/CP2102/PL2303) are cheap and plentiful, unlike the FT245 parallel niche this project actually exists to address. It may instead be more valuable as a way to give a homebrew SBC like BeanZee its own UART alongside USB, rather than as a UM245R-style replacement in its own right.
+
 ## Hardware
 
 - Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants for the future Wi-Fi option
