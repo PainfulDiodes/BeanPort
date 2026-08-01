@@ -40,19 +40,25 @@ Build:
 ./build.sh [board]
 ```
 
-`board` defaults to `pico` (other options: `pico_w`, `pico2`, `pico2_w`). Output binaries land in `build/bin/`.
+`board` defaults to `pico` (other options: `pico_w`, `pico2`, `pico2_w`). Each board gets its own build directory (`build/<board>/`). Output binaries land in `build/<board>/bin/`.
+
+`pico_w`/`pico2_w` builds additionally require the `cyw43-driver` submodule, which isn't pulled by default - see `init-submodules.sh`.
 
 To remove build artefacts:
 
 ```sh
-./clean.sh
+./clean.sh [board]
 ```
+
+Removes `build/<board>` if given, otherwise the whole `build/` directory.
 
 ## Deploying
 
 ```sh
-./deploy.sh [path-to-uf2]
+./deploy.sh [board]
 ```
+
+`board` defaults to `pico`; looks for `build/<board>/bin/beanport.uf2`.
 
 Uses `picotool load -f -x` — forces the device into BOOTSEL mode if it's currently running application code (no need to hold the physical button), loads the firmware, and reboots into it. This only works if the running firmware exposes USB (e.g. via TinyUSB/`pico_stdio_usb`); otherwise put the Pico in BOOTSEL mode manually first (hold BOOTSEL while plugging in).
 
