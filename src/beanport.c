@@ -9,6 +9,12 @@
 // GPIO port; nothing here discriminates by port yet.
 #define IORQ_PIN 8
 
+// Pico pin for WR# from the second level shifter, active-low. IORQ# alone
+// doesn't mean "port write" - it's also asserted for I/O reads and for
+// Z80 interrupt-acknowledge cycles (M1#+IORQ#), neither of which assert
+// WR#. Used to qualify captured IORQ# events down to genuine I/O writes.
+#define WR_PIN 10
+
 // GP0-GP7 = D0-D7 from the level shifter's B-side
 static uint8_t read_data_bus(void) {
     uint8_t value = 0;
@@ -27,6 +33,10 @@ static volatile uint8_t iorq_head = 0;
 static volatile uint8_t iorq_tail = 0;
 
 static void iorq_irq_handler(uint gpio, uint32_t events) {
+    if (gpio_get(WR_PIN) != 0) {
+        return; // I/O read or interrupt-ack, not a write - ignore
+    }
+
     uint8_t next_head = (iorq_head + 1) % IORQ_EVENT_BUF_SIZE;
     if (next_head != iorq_tail) {
         iorq_events[iorq_head] = read_data_bus();
@@ -42,6 +52,9 @@ int main() {
         gpio_init(i);
         gpio_set_dir(i, GPIO_IN);
     }
+
+    gpio_init(WR_PIN);
+    gpio_set_dir(WR_PIN, GPIO_IN);
 
     gpio_init(IORQ_PIN);
     gpio_set_dir(IORQ_PIN, GPIO_IN);
