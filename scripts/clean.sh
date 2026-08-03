@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # Remove BeanPort build artefacts.
-# Usage: ./clean.sh [board]
+# Usage: ./scripts/clean.sh [board]
 # Removes build/<board> if given, otherwise the whole build/ directory.
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [ -n "$1" ]; then
-    rm -rf "$SCRIPT_DIR/build/$1"
+    rm -rf "$REPO_ROOT/build/$1"
 else
-    rm -rf "$SCRIPT_DIR/build"
+    rm -rf "$REPO_ROOT/build"
 fi

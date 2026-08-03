@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Deploy a built .uf2 to a connected Pico via picotool.
-# Usage: ./deploy.sh [board]
+# Usage: ./scripts/deploy.sh [board]
 # board defaults to pico; looks for build/<board>/bin/beanport.uf2
 #
 # Loads the firmware and reboots into it. Forces the device into BOOTSEL
@@ -12,8 +12,8 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BOARD=${1:-pico}
-UF2="$SCRIPT_DIR/build/$BOARD/bin/beanport.uf2"
+UF2="$REPO_ROOT/build/$BOARD/bin/beanport.uf2"
 
 picotool load "$UF2" -f -x

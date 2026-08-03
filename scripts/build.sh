@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Build BeanPort firmware.
-# Usage: ./build.sh [board]
+# Usage: ./scripts/build.sh [board]
 # board defaults to pico (other options: pico_w, pico2, pico2_w)
 #
 # Each board gets its own build directory (build/<board>/)
@@ -11,11 +11,11 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BOARD=${1:-pico}
-BUILD_DIR="$SCRIPT_DIR/build/$BOARD"
+BUILD_DIR="$REPO_ROOT/build/$BOARD"
 
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
-cmake -DPICO_BOARD=$BOARD "$SCRIPT_DIR"
+cmake -DPICO_BOARD=$BOARD "$REPO_ROOT"
 cmake --build .

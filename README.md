@@ -39,7 +39,7 @@ Clone with submodules:
 
 ```sh
 git clone https://github.com/PainfulDiodes/beanport.git
-./beanport/init-submodules.sh
+./beanport/scripts/init-submodules.sh
 ```
 
 `pico-sdk` is vendored as a submodule, along with all of its own submodules (TinyUSB, mbedtls, lwip, btstack, cyw43-driver).
@@ -47,7 +47,7 @@ git clone https://github.com/PainfulDiodes/beanport.git
 Build:
 
 ```sh
-./build.sh [board]
+./scripts/build.sh [board]
 ```
 
 `board` defaults to `pico` (other options: `pico_w`, `pico2`, `pico2_w`). Each board gets its own build directory (`build/<board>/`). Output binaries land in `build/<board>/bin/`.
@@ -55,7 +55,7 @@ Build:
 To remove build artefacts:
 
 ```sh
-./clean.sh [board]
+./scripts/clean.sh [board]
 ```
 
 Removes `build/<board>` if given, otherwise the whole `build/` directory.
@@ -63,7 +63,7 @@ Removes `build/<board>` if given, otherwise the whole `build/` directory.
 ## Deploying
 
 ```sh
-./deploy.sh [board]
+./scripts/deploy.sh [board]
 ```
 
 `board` defaults to `pico`; looks for `build/<board>/bin/beanport.uf2`.

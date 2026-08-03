@@ -4,6 +4,6 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-git -C "$SCRIPT_DIR" submodule update --init --recursive
+git -C "$REPO_ROOT" submodule update --init --recursive
