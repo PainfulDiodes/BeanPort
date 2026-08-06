@@ -2,30 +2,50 @@
 ; bus_capture.pio - captures D0-D7 on genuine Z80 I/O write cycles.
 ;
 ; GP0-7 = D0-D7 (IN pins, base 0)
-; GP8   = IORQ# (JMP pin, active-low)
-; GP10  = WR#   (absolute GPIO wait, active-low)
+; GP8   = R/W   (JMP pin; un-inverted Z80 RD#, active-low = reading)
+; GP9   = EN#   (absolute GPIO wait, active-low; '138 decode output -
+;                already encodes IORQ# asserted AND this port addressed)
 ;
-; Triggers on WR# (shared by both memory and I/O writes), then checks
-; IORQ#'s *current* level as an immediate branch rather than a separate
-; blocking wait - the two must be checked essentially atomically, because
-; IORQ# can go low for something unrelated (e.g. an earlier I/O read) and
-; then go stale while a later, unrelated WR# pulse (any ordinary memory
-; write) satisfies a blocking wait on WR# with no way to notice IORQ# is
-; no longer actually asserted. `jmp pin` reads GP8 fresh on the very next
-; PIO cycle after WR# is seen low, so there's no window for that race.
+; Triggers on EN# instead of WR# now that address-decode glue logic
+; exists in hardware (log.md, "Design summary" / Step 6) - EN# already
+; means "IORQ# asserted and this port is addressed", so the separate
+; IORQ# check the old version needed is gone, and WR# is no longer wired
+; to the Pico at all. Checks R/W's *current* level as an immediate branch
+; rather than a separate blocking wait - same "must be checked
+; atomically" reasoning as the original IORQ#/WR# fix: R/W could go low
+; for an earlier, unrelated read and go stale by the time a later EN#
+; assertion is seen, so `jmp pin` reads GP8 fresh on the very next PIO
+; cycle after EN# is seen low, closing that window. R/W high (not
+; reading) is what confirms a genuine write, since EN# alone doesn't
+; distinguish read from write.
 ;
-; Once a genuine write is confirmed, samples the data bus, pushes the
-; byte, then waits for WR# to deassert before re-arming - since D0-D7
-; can't change again until the next write cycle starts, there's nothing
-; to gain by re-triggering before this one has ended.
+; Once a genuine write is confirmed, waits a deliberate margin before
+; sampling (see `capture:` below), pushes the byte, then waits for EN#
+; to deassert before re-arming - since D0-D7 can't change again until
+; the next write cycle starts, there's nothing to gain by re-triggering
+; before this one has ended.
 
 .program bus_capture
 
 .wrap_target
 retry:
-    wait 0 gpio 10      ; WR# asserted - a memory or I/O write
-    jmp pin retry       ; IORQ# (JMP pin) still high -> not I/O, go re-wait WR#
-    in pins, 8          ; genuine I/O write - sample D0-D7
+    wait 0 gpio 9       ; EN# asserted - addressed I/O cycle (read or write)
+    jmp pin capture     ; R/W (JMP pin) high -> not reading -> genuine write
+    jmp retry           ; R/W low -> currently a read, not a write -> retry
+capture:
+    ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz),
+    ; chosen as half a Z80 T-state (100ns @ 10MHz) rather than the fuller
+    ; analysis in log_prop_del.md (which timed the older WR#-triggered
+    ; design and no longer applies as-is - see that file's open item (1)).
+    ; Comfortably clears the worst-case data-valid point: OE# on the data
+    ; level-shifter is driven directly from the same '138 output as EN#
+    ; (not routed through the Pico), so data is already valid by ~44ns
+    ; worst-case (40ns '138 decode + 4ns chip 1 propagation) after the
+    ; Z80 asserts - well before this delay (starting only once EN# has
+    ; already reached and been recognized by the PIO, ~19ns in on its
+    ; own) elapses.
+    nop [6]
+    in pins, 8          ; sample D0-D7
     push                ; hand the byte to the RX FIFO
-    wait 1 gpio 10      ; wait for WR# to deassert before re-arming
+    wait 1 gpio 9       ; wait for EN# to deassert before re-arming
 .wrap

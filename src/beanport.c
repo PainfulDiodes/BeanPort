@@ -14,19 +14,21 @@ int main() {
         pio_gpio_init(pio0, i);
     }
 
-    // IORQ# and WR# (GP8/GP10, second level shifter) are read directly by
+    // R/W and EN# (GP8/GP9, second level shifter) are read directly by
     // the PIO program via "jmp pin"/"wait gpio", which read the raw pad
     // state regardless of pin function - no pio_gpio_init needed for them.
+    // GP10 (A0) isn't used by the PIO program yet - reserved for the
+    // register-scheme work (todo.md).
     gpio_init(8);
     gpio_set_dir(8, GPIO_IN);
-    gpio_init(10);
-    gpio_set_dir(10, GPIO_IN);
+    gpio_init(9);
+    gpio_set_dir(9, GPIO_IN);
 
     uint sm = pio_claim_unused_sm(pio0, true);
     uint offset = pio_add_program(pio0, &bus_capture_program);
     pio_sm_config sm_cfg = bus_capture_program_get_default_config(offset);
     sm_config_set_in_pins(&sm_cfg, 0); // IN base = GP0 (D0-D7)
-    sm_config_set_jmp_pin(&sm_cfg, 8); // JMP pin = GP8 (IORQ#), for "jmp pin"
+    sm_config_set_jmp_pin(&sm_cfg, 8); // JMP pin = GP8 (R/W), for "jmp pin"
     // Shift left rather than the SDK default (right): with one 8-bit "in"
     // per push, this lands the byte directly in bits [7:0] of the pushed
     // word, so the C side can just cast rather than shift.
