@@ -2,7 +2,6 @@
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 #include "bus_capture.pio.h"
-#include <ctype.h>
 #include <stdio.h>
 
 int main() {
@@ -38,13 +37,6 @@ int main() {
     pio_sm_set_enabled(pio0, sm, true);
 
     while (true) {
-        int c = getchar();
-        putchar(toupper(c));
-        putchar(' ');
-
-        while (!pio_sm_is_rx_fifo_empty(pio0, sm)) {
-            printf("%02X ", (uint8_t)pio_sm_get(pio0, sm));
-        }
-        putchar('\n');
+        putchar((uint8_t)pio_sm_get_blocking(pio0, sm));
     }
 }
