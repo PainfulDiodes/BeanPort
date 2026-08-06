@@ -4,9 +4,9 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early prototyping stage, but past the toolchain-only milestone: real Z80 data has been verified flowing end-to-end - BeanBoard GPIO output -> SN74LVC245A level shifter -> Pico GPIO input -> USB. The current `beanport` firmware echoes typed characters back over USB (uppercased, to prove it's actually round-tripping through the Pico) and, on each keystroke, reads GP0-GP7 (D0-D7 from the level shifter) and prints the byte as a hex pair - confirmed against known values sent by a BeanBoard test program (`0x55`, then `0x44`).
+Early prototyping stage, with the core read path proven end-to-end against real hardware: hardware address decoding (a 74LS138 producing a port-block enable, EN#) gates a PIO state machine that captures genuine Z80 I/O write cycles - qualified by R/W - and forwards each byte straight over USB. Verified with real keyboard input: typing on the BeanBoard's keyboard sends each character through Marvin's console, out a Z80 port write, through the address-decode/level-shifter/PIO capture chain, and out the Pico's USB as the same raw byte.
 
-Still exploratory, not the final bridge protocol: capture is a free-running poll (not synced to WR#/IORQ#), no address decoding/port discrimination yet, no write path back to the Z80, no PIO.
+Still exploratory, not the final bridge protocol: only a single test port is decoded so far (no STATUS/DATA register scheme yet), no write path back to the Z80 (read direction switching is Pico-GPIO-input only for now), and R/W to the Pico is un-inverted Z80 RD# rather than the ACIA-convention polarity.
 
 ## Overview
 
@@ -23,7 +23,10 @@ A UART (TX/RX, optional CTS/RTS) passthrough mode is also worth adding opportuni
 ## Hardware
 
 - Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants for the future Wi-Fi option
-- SN74LVC245A octal buffer/level shifter (5V Z80 bus <-> 3.3V Pico)
+- SN74LVC245A octal buffer/level shifter (5V Z80 bus <-> 3.3V Pico) - one for data, one for control/address signals
+- 74LS138 3-to-8 line decoder, for Z80 port-bank address decoding
+
+Breadboard schematic (KiCad): [kicad/beanport.pdf](kicad/beanport.pdf)
 
 ## Building
 

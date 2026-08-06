@@ -1,4 +1,6 @@
 .DS_Store
+*.kicad_prl
+.history/
 
 # Keep the .uf2 for every board (the deployable artefact), ignore
 # everything else under build/ (elf/bin/hex/map/dis, CMake cache/files,
