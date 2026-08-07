@@ -1,10 +1,13 @@
 ;
 ; bus_capture.pio - Z80 I/O read/write cycles for BeanPort's decoded port.
 ;
-; GP0-7 = D0-D7 (IN pins AND OUT pins, base 0 - bidirectional data bus)
-; GP8   = R/W   (JMP pin; un-inverted Z80 RD#, active-low = reading)
-; GP9   = EN#   (absolute GPIO wait, active-low; '138 decode output -
-;                already encodes IORQ# asserted AND this port addressed)
+; GP0-7  = D0-D7 (IN pins AND OUT pins, base 0 - bidirectional data bus)
+; GP8    = R/W   (JMP pin; un-inverted Z80 RD#, active-low = reading)
+; GP9    = EN#   (absolute GPIO wait, active-low; '138 decode output -
+;                 already encodes IORQ# asserted AND this port addressed)
+; GP10   = A0    (raw Z80 A0, not decoded by the '138 - distinguishes the
+;                 two ports EN# covers; sampled alongside D0-D7 on write,
+;                 see write_path below)
 ;
 ; Triggers on EN# (the '138 decode output, encoding "IORQ# asserted and
 ; this port is addressed") for both directions, then checks R/W's
@@ -59,7 +62,10 @@ write_path:
     ; already reached and been recognized by the PIO, ~19ns in on its
     ; own) elapses.
     nop [6]
-    in pins, 8          ; sample D0-D7
-    push                ; hand the byte to the RX FIFO
+    in pins, 11         ; sample D0-D7 (bits 0-7), R/W (bit 8, always 1
+                        ; here), EN# (bit 9, always 0 here), and A0 (bit
+                        ; 10) - one shot from IN_BASE=0; R/W and EN# ride
+                        ; along unused, C masks out just what it needs
+    push                ; hand the word to the RX FIFO
     wait 1 gpio 9       ; wait for EN# to deassert before re-arming
 .wrap

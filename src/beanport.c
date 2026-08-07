@@ -13,15 +13,17 @@ int main() {
         pio_gpio_init(pio0, i);
     }
 
-    // R/W and EN# (GP8/GP9) are read directly by
-    // the PIO program via "jmp pin"/"wait gpio", which read the raw pad
-    // state regardless of pin function - no pio_gpio_init needed for them.
-    // GP10 (A0) isn't used by the PIO program yet - reserved for the
-    // register-scheme work.
+    // R/W, EN#, and A0 (GP8/GP9/GP10) are read directly by the PIO
+    // program via "jmp pin"/"wait gpio"/"in pins", all of which read the
+    // raw pad state regardless of pin function - no pio_gpio_init needed
+    // for them (unlike GP0-7, which also get driven as outputs on a
+    // read, so do need it).
     gpio_init(8);
     gpio_set_dir(8, GPIO_IN);
     gpio_init(9);
     gpio_set_dir(9, GPIO_IN);
+    gpio_init(10);
+    gpio_set_dir(10, GPIO_IN);
 
     uint sm = pio_claim_unused_sm(pio0, true);
     uint offset = pio_add_program(pio0, &bus_capture_program);
@@ -29,9 +31,10 @@ int main() {
     sm_config_set_in_pins(&sm_cfg, 0);  // IN base = GP0 (D0-D7)
     sm_config_set_out_pins(&sm_cfg, 0, 8); // OUT base = GP0, count 8 (D0-D7)
     sm_config_set_jmp_pin(&sm_cfg, 8); // JMP pin = GP8 (R/W), for "jmp pin"
-    // Shift left rather than the SDK default (right): with one 8-bit "in"
-    // per push, this lands the byte directly in bits [7:0] of the pushed
-    // word, so the C side can just cast rather than shift.
+    // Shift left rather than the SDK default (right): with one 11-bit
+    // "in" per push, this lands the sample directly in bits [10:0] of
+    // the pushed word (D0-D7 in bits 0-7, R/W in bit 8, EN# in bit 9,
+    // A0 in bit 10), so the C side can just mask rather than shift.
     sm_config_set_in_shift(&sm_cfg, false, false, 32);
     pio_sm_set_consecutive_pindirs(pio0, sm, 0, 8, false); // D0-D7 as inputs
     pio_sm_init(pio0, sm, offset, &sm_cfg);
@@ -39,8 +42,14 @@ int main() {
 
     while (true) {
         if (!pio_sm_is_rx_fifo_empty(pio0, sm)) {
-            uint8_t b = (uint8_t)pio_sm_get(pio0, sm);
-            putchar(b);
+            uint32_t word = pio_sm_get(pio0, sm);
+            uint8_t data = word & 0xFF;
+            bool a0 = (word >> 10) & 1;
+            // Port-distinguishing test (Step 9): echo unchanged for
+            // A0=0 (port 12), bitwise-complemented for A0=1 (port 13) -
+            // a deliberately obvious tell that A0 is being sensed
+            // correctly, not yet real independent per-port storage.
+            uint8_t echo = a0 ? (uint8_t)~data : data;
             // Drop any stale, unconsumed echo value first - the TX FIFO
             // has real queue depth, and a byte pushed here only gets
             // consumed once a genuine read happens (PIO's "pull noblock"
@@ -48,7 +57,13 @@ int main() {
             // spurious captures during power-up) rides along as a
             // permanent lag instead of ever catching up to "latest".
             pio_sm_clear_fifos(pio0, sm);
-            pio_sm_put(pio0, sm, b); // echo back for the next Z80 read
+            pio_sm_put(pio0, sm, echo); // echo back for the next Z80 read
+            // putchar() comes last, deliberately - it can block for a
+            // USB frame or more (stdio_usb.c's stdout path calls
+            // tud_task()/tud_cdc_write_flush() synchronously), and that
+            // latency must not sit between capturing a write and being
+            // ready to serve the next read.
+            putchar(data);
         }
     }
 }
