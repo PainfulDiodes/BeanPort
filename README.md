@@ -4,9 +4,13 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early prototyping stage, with the core read path proven end-to-end against real hardware: hardware address decoding (a 74LS138 producing a port-block enable, EN#) gates a PIO state machine that captures genuine Z80 I/O write cycles - qualified by R/W - and forwards each byte straight over USB. Verified with real keyboard input: typing on the BeanBoard's keyboard sends each character through Marvin's console, out a Z80 port write, through the address-decode/level-shifter/PIO capture chain, and out the Pico's USB as the same raw byte.
+Prototyping stage, with both directions of communication between USB and the Z80 proven end-to-end against real hardware.
 
-Still exploratory, not the final bridge protocol: only a single test port is decoded so far (no STATUS/DATA register scheme yet), no write path back to the Z80 (read direction switching is Pico-GPIO-input only for now), and R/W to the Pico is un-inverted Z80 RD# rather than the ACIA-convention polarity.
+Pico is connected to the Z80 bus: data, address, IORQ#, RD# (WR inferred form RD). Address/IORQ# decoded by a 74LS138 producing a port-block enable (EN#) and all the lines to the Pico level-shifted from 5v to 3v3. Level-shifters are tri-state so avoid bus contention (bus connection controlled by the Z80).
+
+EN# gates a single PIO state machine that both captures genuine Z80 I/O write cycles qualified by R/W (RD#)) and, on a read, switches the data pins to outputs and drives a byte back - entirely within the PIO program - since the 10MHz Z80's ~200ns timing budget doesn't allow waiting on a C program using interrupts. Verified with a Z80 test program sending data to a Z80 port write, through the address-decode/level-shifter/PIO capture chain and out over USB; the same byte is echoed straight back, so a Z80 program can immediately read back exactly what it sent.
+
+Still exploratory, not the final bridge protocol: only a single test port is decoded so far, and the read path currently just echoes back whatever was last written rather than implementing real STATUS/DATA register semantics (no register scheme yet), and R/W to the Pico is un-inverted Z80 RD# rather than the ACIA-convention polarity.
 
 ## Overview
 
