@@ -1,38 +1,52 @@
 ;
-; bus_capture.pio - captures D0-D7 on genuine Z80 I/O write cycles.
+; bus_capture.pio - Z80 I/O read/write cycles for BeanPort's decoded port.
 ;
-; GP0-7 = D0-D7 (IN pins, base 0)
+; GP0-7 = D0-D7 (IN pins AND OUT pins, base 0 - bidirectional data bus)
 ; GP8   = R/W   (JMP pin; un-inverted Z80 RD#, active-low = reading)
 ; GP9   = EN#   (absolute GPIO wait, active-low; '138 decode output -
 ;                already encodes IORQ# asserted AND this port addressed)
 ;
-; Triggers on EN# instead of WR# now that address-decode glue logic
-; exists in hardware (log.md, "Design summary" / Step 6) - EN# already
-; means "IORQ# asserted and this port is addressed", so the separate
-; IORQ# check the old version needed is gone, and WR# is no longer wired
-; to the Pico at all. Checks R/W's *current* level as an immediate branch
-; rather than a separate blocking wait - same "must be checked
-; atomically" reasoning as the original IORQ#/WR# fix: R/W could go low
-; for an earlier, unrelated read and go stale by the time a later EN#
-; assertion is seen, so `jmp pin` reads GP8 fresh on the very next PIO
-; cycle after EN# is seen low, closing that window. R/W high (not
-; reading) is what confirms a genuine write, since EN# alone doesn't
-; distinguish read from write.
+; Triggers on EN# (the '138 decode output, encoding "IORQ# asserted and
+; this port is addressed") for both directions, then checks R/W's
+; *current* level as an immediate branch rather than a separate blocking
+; wait - checking the two together atomically avoids a stale read: R/W
+; could go low for an earlier, unrelated read and go stale by the time a
+; later EN# assertion is seen, so `jmp pin` reads GP8 fresh on the very
+; next PIO cycle after EN# is seen low.
 ;
-; Once a genuine write is confirmed, waits a deliberate margin before
-; sampling (see `capture:` below), pushes the byte, then waits for EN#
-; to deassert before re-arming - since D0-D7 can't change again until
-; the next write cycle starts, there's nothing to gain by re-triggering
-; before this one has ended.
+; WRITE (R/W high - not reading, so a genuine write): waits a deliberate
+; margin before sampling (see `write_path:` below), pushes the byte to
+; the RX FIFO, then waits for EN# to deassert before re-arming.
+;
+; READ (R/W low): the *value* driven back comes from C, not this program
+; - `pull noblock` takes whatever byte C last pushed via `pio_sm_put()`,
+; falling back to the previous value (cached in X) if C hasn't pushed a
+; fresh one since the last read, so this never blocks waiting on C. Only
+; the direction switch and drive - the part with a real timing budget -
+; happens here: GP0-7 flip to outputs, drive the byte, then flip back to
+; inputs the instant EN# deasserts. Hardware DIR (wired directly to RD#,
+; not through the Pico) makes the same switch independently and faster;
+; this just has to keep pace with it closely enough not to contend with
+; the level shifter's own driver on the next write.
 
 .program bus_capture
 
 .wrap_target
 retry:
     wait 0 gpio 9       ; EN# asserted - addressed I/O cycle (read or write)
-    jmp pin capture     ; R/W (JMP pin) high -> not reading -> genuine write
-    jmp retry           ; R/W low -> currently a read, not a write -> retry
-capture:
+    jmp pin write_path  ; R/W (JMP pin) high -> not reading -> genuine write
+read_path:               ; R/W low -> genuine read (fallthrough)
+    pull noblock            ; OSR = newest byte from C, or stale if none waiting
+    mov x, osr                ; cache it - X always holds "the current byte to serve"
+    mov osr, ~ null              ; OSR = all 1s
+    out pindirs, 8                  ; GP0-7 -> outputs
+    mov osr, x                        ; reload the actual byte
+    out pins, 8                          ; drive it
+    wait 1 gpio 9                           ; wait for EN# to deassert
+    mov osr, null                              ; OSR = 0
+    out pindirs, 8                                ; GP0-7 -> back to inputs
+    jmp retry
+write_path:
     ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz),
     ; chosen as half a Z80 T-state (100ns @ 10MHz) rather than the fuller
     ; analysis in log_prop_del.md (which timed the older WR#-triggered
