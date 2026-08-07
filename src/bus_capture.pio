@@ -21,11 +21,19 @@
 ; margin before sampling (see `write_path:` below), pushes the byte to
 ; the RX FIFO, then waits for EN# to deassert before re-arming.
 ;
-; READ (R/W low): the *value* driven back comes from C, not this program
-; - `pull noblock` takes whatever byte C last pushed via `pio_sm_put()`,
-; falling back to the previous value (cached in X) if C hasn't pushed a
-; fresh one since the last read, so this never blocks waiting on C. Only
-; the direction switch and drive - the part with a real timing budget -
+; READ (R/W low): C keeps two independent bytes (port A / port B) and
+; always pushes them combined as one 16-bit word (low byte = port A,
+; high byte = port B) whenever either changes - `pull noblock` takes the
+; newest combined word, falling back to the previous one (cached in X)
+; if C hasn't pushed a fresh one since the last read, so this never
+; blocks waiting on C. Which half to actually drive is decided here, by
+; sampling A0 live: `jmp pin` isn't available for it (that slot's
+; already spoken for by R/W above, and a state machine only gets one),
+; so A0 is captured via `in pins` alongside D0-D7/R/W/EN# and peeled out
+; bit-by-bit with `out null, N` / `out Y, 1` instead - slower than a
+; `jmp pin` branch, but the only way to test an arbitrary sampled bit
+; when the one jmp_pin slot is already committed elsewhere. Only the
+; direction switch and drive - the part with a real timing budget -
 ; happens here: GP0-7 flip to outputs, drive the byte, then flip back to
 ; inputs the instant EN# deasserts. Hardware DIR (wired directly to RD#,
 ; not through the Pico) makes the same switch independently and faster;
@@ -34,20 +42,37 @@
 
 .program bus_capture
 
+; Runs once at start, before .wrap_target - pio_sm_restart() (called by
+; pio_sm_init()) explicitly leaves X and Y untouched, so without this X
+; would hold whatever the silicon happens to reset to, not a value this
+; program actually chose. Only X needs it: it's the one read_path relies
+; on as a fallback (via `pull noblock`) before C has ever pushed a value.
+set x, 0
+
 .wrap_target
 retry:
     wait 0 gpio 9       ; EN# asserted - addressed I/O cycle (read or write)
     jmp pin write_path  ; R/W (JMP pin) high -> not reading -> genuine write
-read_path:               ; R/W low -> genuine read (fallthrough)
-    pull noblock            ; OSR = newest byte from C, or stale if none waiting
-    mov x, osr                ; cache it - X always holds "the current byte to serve"
-    mov osr, ~ null              ; OSR = all 1s
-    out pindirs, 8                  ; GP0-7 -> outputs
-    mov osr, x                        ; reload the actual byte
-    out pins, 8                          ; drive it
-    wait 1 gpio 9                           ; wait for EN# to deassert
-    mov osr, null                              ; OSR = 0
-    out pindirs, 8                                ; GP0-7 -> back to inputs
+read_path:              ; R/W low -> genuine read (fallthrough)
+    pull noblock        ; OSR = newest combined word from C, or if none waiting = x
+    mov x, osr          ; cache it - X always holds "the current combined word"
+    in pins, 11         ; fresh GP0-10 sample; bit 10 = A0 (D0-D7/R/W/EN#
+                        ; ride along unused, same shape as write_path's capture)
+    mov osr, isr        ; move the sample into OSR so it can be peeled with `out`
+    out null, 10        ; discard the low 10 bits (not A0)
+    out y, 1            ; Y = A0 (0 or 1), isolated
+    mov osr, x          ; OSR = combined word again, ready to extract a byte
+    jmp !y byte_ready   ; A0=0 -> port A's byte is already in OSR's low 8 bits
+    out null, 8         ; A0=1 -> discard port A's byte, promoting port B's
+byte_ready:
+    out y, 8            ; stash the data in Y
+    mov osr, ~ null     ; OSR = all 1s
+    out pindirs, 8      ; GP0-7 -> outputs
+    mov osr, y          ; restore OSR
+    out pins, 8         ; send data
+    wait 1 gpio 9       ; wait for EN# to deassert
+    mov osr, null       ; OSR = 0
+    out pindirs, 8      ; GP0-7 -> back to inputs
     jmp retry
 write_path:
     ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz),

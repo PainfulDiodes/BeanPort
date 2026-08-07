@@ -40,16 +40,26 @@ int main() {
     pio_sm_init(pio0, sm, offset, &sm_cfg);
     pio_sm_set_enabled(pio0, sm, true);
 
+    // Step 10: two independent per-port bytes, not real STATUS/DATA
+    // storage yet - just enough to prove the read side can tell port A
+    // (A0=0) and port B (A0=1) apart, same spirit as Step 9's write-side
+    // test. Always pushed combined (port B in the high byte, port A in
+    // the low byte) so the PIO's single pull/X-fallback mechanism can
+    // carry both at once - see bus_capture.pio's read_path.
+    uint8_t port_a_val = 0;
+    uint8_t port_b_val = 0;
+
     while (true) {
         if (!pio_sm_is_rx_fifo_empty(pio0, sm)) {
             uint32_t word = pio_sm_get(pio0, sm);
             uint8_t data = word & 0xFF;
             bool a0 = (word >> 10) & 1;
-            // Port-distinguishing test (Step 9): echo unchanged for
-            // A0=0 (port 12), bitwise-complemented for A0=1 (port 13) -
-            // a deliberately obvious tell that A0 is being sensed
-            // correctly, not yet real independent per-port storage.
-            uint8_t echo = a0 ? (uint8_t)~data : data;
+            if (a0) {
+                port_b_val = data;
+            } else {
+                port_a_val = data;
+            }
+            uint32_t combined = ((uint32_t)port_b_val << 8) | port_a_val;
             // Drop any stale, unconsumed echo value first - the TX FIFO
             // has real queue depth, and a byte pushed here only gets
             // consumed once a genuine read happens (PIO's "pull noblock"
@@ -57,7 +67,7 @@ int main() {
             // spurious captures during power-up) rides along as a
             // permanent lag instead of ever catching up to "latest".
             pio_sm_clear_fifos(pio0, sm);
-            pio_sm_put(pio0, sm, echo); // echo back for the next Z80 read
+            pio_sm_put(pio0, sm, combined); // both bytes, for the next Z80 read
             // putchar() comes last, deliberately - it can block for a
             // USB frame or more (stdio_usb.c's stdout path calls
             // tud_task()/tud_cdc_write_flush() synchronously), and that
