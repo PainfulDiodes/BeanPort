@@ -28,41 +28,70 @@ static inline void tx_ring_push(uint8_t byte) {
     tx_head = next;
 }
 
+#define RX_BUF_SIZE 256
+static volatile uint8_t rx_buf[RX_BUF_SIZE];
+static volatile uint16_t rx_head = 0; // next slot to write - Core 0 only
+static volatile uint16_t rx_tail = 0; // next slot to read - Core 1 only
+
+// Symmetric counterpart to tx_ring_push - same single-producer (Core 0)/
+// single-consumer (Core 1) reasoning, reversed roles. Fed from genuine
+// incoming USB bytes rather than an echo of the Z80's own writes (that was
+// the Step 9/10 A0 test scaffold, now retired - see core1_entry). If full,
+// the byte is dropped - same interim policy as tx_ring_push, ahead of
+// Step 14's real RX-available flow control.
+static inline void rx_ring_push(uint8_t byte) {
+    uint16_t next = (rx_head + 1) % RX_BUF_SIZE;
+    if (next == rx_tail) {
+        return;
+    }
+    rx_buf[rx_head] = byte;
+    rx_head = next;
+}
+
+static inline bool rx_ring_pop(uint8_t *byte) {
+    if (rx_tail == rx_head) {
+        return false;
+    }
+    *byte = rx_buf[rx_tail];
+    rx_tail = (rx_tail + 1) % RX_BUF_SIZE;
+    return true;
+}
+
 // Core 1: owns the PIO bus loop exclusively. Must never call anything that
 // can block on USB (putchar() included) - stdio_usb.c's stdout path calls
 // tud_task()/tud_cdc_write_flush() synchronously, and that latency must
 // never sit between capturing a write and being ready to serve the next
-// read. Bytes for the host are handed to Core 0 via the TX ring buffer.
+// read. Bytes for the host are handed to Core 0 via the TX ring buffer;
+// bytes from the host arrive via the RX ring buffer.
 static void core1_entry() {
-    // Step 10: two independent per-port bytes, not real STATUS/DATA
-    // storage yet - just enough to prove the read side can tell port A
-    // (A0=0) and port B (A0=1) apart, same spirit as Step 9's write-side
-    // test. Always pushed combined (port B in the high byte, port A in
-    // the low byte) so the PIO's single pull/X-fallback mechanism can
-    // carry both at once - see bus_capture.pio's read_path.
-    uint8_t port_a_val = 0;
-    uint8_t port_b_val = 0;
-
     while (true) {
         if (!pio_sm_is_rx_fifo_empty(pio0, bus_sm)) {
             uint32_t word = pio_sm_get(pio0, bus_sm);
-            uint8_t data = word & 0xFF;
-            bool a0 = (word >> 10) & 1;
-            if (a0) {
-                port_b_val = data;
-            } else {
-                port_a_val = data;
-            }
-            uint32_t combined = ((uint32_t)port_b_val << 8) | port_a_val;
-            // Drop any stale, unconsumed echo value first - the TX FIFO
-            // has real queue depth, and a byte pushed here only gets
-            // consumed once a genuine read happens (PIO's "pull noblock"
-            // drains oldest-first). Without this, a backlog (e.g. from
-            // spurious captures during power-up) rides along as a
-            // permanent lag instead of ever catching up to "latest".
+            tx_ring_push(word & 0xFF); // port-agnostic since Step 12 - A0 ignored
+        }
+
+        uint8_t rx_byte;
+        if (rx_ring_pop(&rx_byte)) {
+            // Drop any stale, unconsumed served value first - the TX FIFO
+            // has real queue depth, and a value pushed here only gets
+            // consumed once a genuine Z80 read happens (PIO's "pull
+            // noblock" drains oldest-first). Without this, a backlog rides
+            // along as a permanent lag instead of ever catching up to
+            // "latest". This also clears the write-capture RX FIFO
+            // checked above - pio_sm_clear_fifos() can't target just one
+            // FIFO - so a write landing in the narrow window between that
+            // check and this call would be lost. Accepted as a known
+            // interim gap until Step 14 gives each direction its own real
+            // flow-controlled protocol.
             pio_sm_clear_fifos(pio0, bus_sm);
-            pio_sm_put(pio0, bus_sm, combined); // both bytes, for the next Z80 read
-            tx_ring_push(data);
+            // Both halves carry the same byte: port A and port B (the
+            // Step 9/10 A0 test scaffold) now read identically. That
+            // split only ever existed to prove A0 decoding works, not as
+            // part of the final STATUS/DATA design (Step 14) - reusing
+            // read_path's existing combined-word mechanism unchanged is
+            // simpler than touching the PIO program to remove it.
+            uint32_t combined = ((uint32_t)rx_byte << 8) | rx_byte;
+            pio_sm_put(pio0, bus_sm, combined);
         }
     }
 }
@@ -107,11 +136,18 @@ int main() {
 
     // Core 0: USB/CDC only. Drains the TX ring buffer Core 1 fills and
     // writes bytes out - putchar()'s blocking is confined to this core, so
-    // it can never stall the PIO bus loop on Core 1.
+    // it can never stall the PIO bus loop on Core 1. Also polls incoming
+    // USB bytes (non-blocking) into the RX ring buffer for Core 1 to serve
+    // to the Z80.
     while (true) {
         if (tx_tail != tx_head) {
             putchar(tx_buf[tx_tail]);
             tx_tail = (tx_tail + 1) % TX_BUF_SIZE;
+        }
+
+        int c = getchar_timeout_us(0);
+        if (c != PICO_ERROR_TIMEOUT) {
+            rx_ring_push((uint8_t)c);
         }
     }
 }
