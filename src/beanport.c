@@ -7,11 +7,32 @@
 
 static uint bus_sm;
 
+#define TX_BUF_SIZE 256
+static volatile uint8_t tx_buf[TX_BUF_SIZE];
+static volatile uint16_t tx_head = 0; // next slot to write - Core 1 only
+static volatile uint16_t tx_tail = 0; // next slot to read - Core 0 only
+
+// Single-producer (Core 1)/single-consumer (Core 0) ring buffer: each index
+// is only ever written by the core that owns it, so this needs no locking -
+// RP2040's two cores share SRAM directly, with no per-core cache to desync.
+// Sized to match design.md's 256-byte earmark for this direction (matches
+// the FT245R's own TX buffer), decoupling the Z80 write rate from USB's
+// actual drain rate. If full, the byte is dropped - Step 14 adds a real
+// TX-ready status bit so the Z80 self-throttles instead of hitting this.
+static inline void tx_ring_push(uint8_t byte) {
+    uint16_t next = (tx_head + 1) % TX_BUF_SIZE;
+    if (next == tx_tail) {
+        return;
+    }
+    tx_buf[tx_head] = byte;
+    tx_head = next;
+}
+
 // Core 1: owns the PIO bus loop exclusively. Must never call anything that
 // can block on USB (putchar() included) - stdio_usb.c's stdout path calls
 // tud_task()/tud_cdc_write_flush() synchronously, and that latency must
 // never sit between capturing a write and being ready to serve the next
-// read. Bytes for the host are handed to Core 0 via the inter-core FIFO.
+// read. Bytes for the host are handed to Core 0 via the TX ring buffer.
 static void core1_entry() {
     // Step 10: two independent per-port bytes, not real STATUS/DATA
     // storage yet - just enough to prove the read side can tell port A
@@ -41,7 +62,7 @@ static void core1_entry() {
             // permanent lag instead of ever catching up to "latest".
             pio_sm_clear_fifos(pio0, bus_sm);
             pio_sm_put(pio0, bus_sm, combined); // both bytes, for the next Z80 read
-            multicore_fifo_push_blocking(data);
+            tx_ring_push(data);
         }
     }
 }
@@ -84,11 +105,13 @@ int main() {
 
     multicore_launch_core1(core1_entry);
 
-    // Core 0: USB/CDC only. Drains bytes handed over by Core 1 and writes
-    // them out - putchar()'s blocking is confined to this core, so it can
-    // never stall the PIO bus loop on Core 1.
+    // Core 0: USB/CDC only. Drains the TX ring buffer Core 1 fills and
+    // writes bytes out - putchar()'s blocking is confined to this core, so
+    // it can never stall the PIO bus loop on Core 1.
     while (true) {
-        uint32_t data = multicore_fifo_pop_blocking();
-        putchar((uint8_t)data);
+        if (tx_tail != tx_head) {
+            putchar(tx_buf[tx_tail]);
+            tx_tail = (tx_tail + 1) % TX_BUF_SIZE;
+        }
     }
 }
