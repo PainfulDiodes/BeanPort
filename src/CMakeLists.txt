@@ -1,6 +1,6 @@
 add_executable(beanport beanport.c)
 
-target_link_libraries(beanport pico_stdlib hardware_pio)
+target_link_libraries(beanport pico_stdlib hardware_pio pico_multicore)
 
 pico_enable_stdio_usb(beanport 1)
 pico_enable_stdio_uart(beanport 0)
