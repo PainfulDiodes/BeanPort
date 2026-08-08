@@ -8,9 +8,13 @@ Prototyping stage, with both directions of communication between USB and the Z80
 
 Pico is connected to the Z80 bus: data, address, IORQ#, RD# (WR inferred form RD). Address/IORQ# decoded by a 74LS138 producing a port-block enable (EN#) and all the lines to the Pico level-shifted from 5v to 3v3. Level-shifters are tri-state so avoid bus contention (bus connection controlled by the Z80).
 
-EN# gates a single PIO state machine that both captures genuine Z80 I/O write cycles qualified by R/W (RD#)) and, on a read, switches the data pins to outputs and drives a byte back - entirely within the PIO program - since the 10MHz Z80's ~200ns timing budget doesn't allow waiting on a C program using interrupts. Verified with a Z80 test program sending data to a Z80 port write, through the address-decode/level-shifter/PIO capture chain and out over USB; the same byte is echoed straight back, so a Z80 program can immediately read back exactly what it sent.
+EN# gates a single PIO state machine that both captures genuine Z80 I/O write cycles qualified by R/W (RD#)) and, on a read, switches the data pins to outputs and drives a byte back - entirely within the PIO program - since the 10MHz Z80's ~200ns timing budget doesn't allow waiting on a C program using interrupts. An address line (A0) is also sampled, decoding two ports rather than one, proven independently on both the write and read sides.
 
-Still exploratory, not the final bridge protocol: only a single test port is decoded so far, and the read path currently just echoes back whatever was last written rather than implementing real STATUS/DATA register semantics (no register scheme yet), and R/W to the Pico is un-inverted Z80 RD# rather than the ACIA-convention polarity.
+Firmware runs split across both RP2040 cores: Core 1 owns the PIO bus loop exclusively and never calls anything that can block, while Core 0 owns USB/CDC - `putchar()` and friends can and do block on a USB frame, and that latency must never be able to stall the live, cycle-accurate bus timing on Core 1. The two cores hand data across via a pair of 256-byte software ring buffers, one per direction (Z80 write -> USB, and USB -> Z80 read), replacing an earlier single-cached-byte approach and giving each direction real buffering against bursty traffic - verified with deliberate overrun testing (fills the buffer faster than USB can drain it) as well as normal round-trip exchange.
+
+Still exploratory, not the final bridge protocol: the two decoded ports aren't yet mapped to real STATUS/DATA register semantics (no flow control - a full buffer just drops incoming bytes for now), and R/W to the Pico is un-inverted Z80 RD# rather than the ACIA-convention polarity.
+
+Next: give the two ports real register semantics - one read-only STATUS port (TX-ready / RX-available bits, reflecting the actual ring buffer fill levels) and one DATA port (read/write), so the Z80 side can poll readiness instead of relying on the bridge silently dropping bytes when a buffer fills up.
 
 ## Overview
 
