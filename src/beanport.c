@@ -67,7 +67,18 @@ static void core1_entry() {
     while (true) {
         if (!pio_sm_is_rx_fifo_empty(pio0, bus_sm)) {
             uint32_t word = pio_sm_get(pio0, bus_sm);
-            tx_ring_push(word & 0xFF); // port-agnostic since Step 12 - A0 ignored
+            // Since Step 14a, read_path also pushes into this same FIFO
+            // (a read-completion notification) alongside write_path's
+            // writes - bit 8 (R/W) tells them apart: 1 = write (data in
+            // bits 0-7 is real), 0 = read (bits 0-7 are whatever was on
+            // the bus before this cycle drove it, not meaningful - only
+            // A0, bit 10, matters here). Read notifications are just
+            // discarded for now; Step 14b will use them to pop the RX
+            // ring and refresh STATUS on a genuine DATA (A0=1) read.
+            bool write = (word >> 8) & 1;
+            if (write) {
+                tx_ring_push(word & 0xFF); // port-agnostic since Step 12 - A0 ignored
+            }
         }
 
         uint8_t rx_byte;

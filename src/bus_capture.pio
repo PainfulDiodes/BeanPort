@@ -21,24 +21,32 @@
 ; margin before sampling (see `write_path:` below), pushes the byte to
 ; the RX FIFO, then waits for EN# to deassert before re-arming.
 ;
-; READ (R/W low): C keeps two independent bytes (port A / port B) and
-; always pushes them combined as one 16-bit word (low byte = port A,
-; high byte = port B) whenever either changes - `pull noblock` takes the
-; newest combined word, falling back to the previous one (cached in X)
-; if C hasn't pushed a fresh one since the last read, so this never
-; blocks waiting on C. Which half to actually drive is decided here, by
-; sampling A0 live: `jmp pin` isn't available for it (that slot's
-; already spoken for by R/W above, and a state machine only gets one),
-; so A0 is captured via `in pins` alongside D0-D7/R/W/EN# and peeled out
-; bit-by-bit with `out null, N` / `out Y, 1` instead - slower than a
-; `jmp pin` branch, but the only way to test an arbitrary sampled bit
-; when the one jmp_pin slot is already committed elsewhere. Only the
-; direction switch and drive - the part with a real timing budget -
-; happens here: GP0-7 flip to outputs, drive the byte, then flip back to
-; inputs the instant EN# deasserts. Hardware DIR (wired directly to RD#,
-; not through the Pico) makes the same switch independently and faster;
-; this just has to keep pace with it closely enough not to contend with
-; the level shifter's own driver on the next write.
+; READ (R/W low): C pushes a 16-bit word (both halves currently the same
+; byte - the next one queued for the Z80 to read, from C's own RX ring
+; buffer) whenever a fresh one is ready - `pull noblock` takes the newest,
+; falling back to the previous one (cached in X) if C hasn't pushed a
+; fresh one since the last read, so this never blocks waiting on C. Which
+; half to actually drive is decided here, by sampling A0 live: `jmp pin`
+; isn't available for it (that slot's already spoken for by R/W above,
+; and a state machine only gets one), so A0 is captured via `in pins`
+; alongside D0-D7/R/W/EN# and peeled out bit-by-bit with `out null, N` /
+; `out Y, 1` instead - slower than a `jmp pin` branch, but the only way to
+; test an arbitrary sampled bit when the one jmp_pin slot is already
+; committed elsewhere. The direction switch and drive - the part with a
+; real timing budget - happens here: GP0-7 flip to outputs, drive the
+; byte, then flip back to inputs the instant EN# deasserts. Hardware DIR
+; (wired directly to RD#, not through the Pico) makes the same switch
+; independently and faster; this just has to keep pace with it closely
+; enough not to contend with the level shifter's own driver on the next
+; write. Once EN# has deasserted, this cycle's original 11-bit sample
+; (still intact in ISR - the `out`s above only ever consumed OSR's copy
+; of it) is pushed to the RX FIFO as a read-completion notification,
+; alongside write_path's own pushes - C tells the two apart by the R/W
+; bit each carries (1 = write, 0 = read). Both pushes are `noblock`: a
+; polling Z80 (no flow control yet) can generate read notifications much
+; faster than Core 1 drains the 4-word FIFO, and a blocking push would
+; stall the whole state machine - freezing writes too - the moment it
+; fills, rather than just dropping the notification.
 
 .program bus_capture
 
@@ -73,6 +81,25 @@ byte_ready:
     wait 1 gpio 9       ; wait for EN# to deassert
     mov osr, null       ; OSR = 0
     out pindirs, 8      ; GP0-7 -> back to inputs
+    mov osr, isr        ; ISR still holds this cycle's original 11-bit sample
+                        ; (the `out`s above only ever consumed OSR's copy of
+                        ; it) - A0 is in bit 10, R/W is in bit 8 and reads 0
+                        ; here (this is read_path), which is what lets C
+                        ; tell a read-completion notification apart from a
+                        ; write's in the same shared FIFO
+    push noblock        ; notify C this read has completed - see write_path's
+                        ; own push below for the shape C expects. noblock,
+                        ; not plain push: without real flow control yet, a
+                        ; polling Z80 read loop generates one of these on
+                        ; every single read, including stale repeats - far
+                        ; more often than a write happens, easily enough to
+                        ; fill the 4-word FIFO faster than Core 1 drains it.
+                        ; Plain push would then stall the whole state
+                        ; machine until C caught up, freezing writes too,
+                        ; not just reads - noblock just drops the
+                        ; notification instead, which is fine: it's an
+                        ; interim signal (Step 14b), not data that must
+                        ; never be lost.
     jmp retry
 write_path:
     ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz),
@@ -91,6 +118,13 @@ write_path:
                         ; here), EN# (bit 9, always 0 here), and A0 (bit
                         ; 10) - one shot from IN_BASE=0; R/W and EN# ride
                         ; along unused, C masks out just what it needs
-    push                ; hand the word to the RX FIFO
+    push noblock        ; hand the word to the RX FIFO - noblock since
+                        ; read_path's own notifications now share this FIFO
+                        ; and can fill it fast (see read_path's comment); a
+                        ; write landing while it's full would otherwise
+                        ; stall the whole state machine instead of just
+                        ; losing this one write, same interim-drop
+                        ; reasoning as the software ring buffers already
+                        ; use (Steps 12-13)
     wait 1 gpio 9       ; wait for EN# to deassert before re-arming
 .wrap
