@@ -48,14 +48,21 @@ static inline void rx_ring_push(uint8_t byte) {
     rx_head = next;
 }
 
-static inline bool rx_ring_pop(uint8_t *byte) {
-    if (rx_tail == rx_head) {
-        return false;
+// Advances past the byte currently being served on the DATA port - called
+// only in response to a confirmed DATA read-completion notification
+// (core1_entry), never speculatively. That's what lets RX-available
+// reflect reality: it clears at the instant the Z80 actually reads DATA,
+// not whenever C happens to notice a new USB byte.
+static inline void rx_ring_advance(void) {
+    if (rx_tail != rx_head) {
+        rx_tail = (rx_tail + 1) % RX_BUF_SIZE;
     }
-    *byte = rx_buf[rx_tail];
-    rx_tail = (rx_tail + 1) % RX_BUF_SIZE;
-    return true;
 }
+
+// STATUS bits (A0=0, read-only): bit 0 = TX ready (space in the TX ring),
+// bit 1 = RX available (an unread byte waiting in the RX ring).
+#define STATUS_TX_READY 0x01
+#define STATUS_RX_AVAILABLE 0x02
 
 // Core 1: owns the PIO bus loop exclusively. Must never call anything that
 // can block on USB (putchar() included) - stdio_usb.c's stdout path calls
@@ -64,45 +71,61 @@ static inline bool rx_ring_pop(uint8_t *byte) {
 // read. Bytes for the host are handed to Core 0 via the TX ring buffer;
 // bytes from the host arrive via the RX ring buffer.
 static void core1_entry() {
+    uint32_t served = 0xFFFFFFFF; // forces the first real snapshot to be pushed
+    static volatile uint8_t diag_advance_count = 0; // TEMP diagnostic, Step 14c
+
     while (true) {
-        if (!pio_sm_is_rx_fifo_empty(pio0, bus_sm)) {
+        // Drain every notification currently queued, not just one - the
+        // FIFO holds up to 4, and a Z80 read immediately followed by a
+        // write (e.g. "in a,(DATA)" then "out (DATA),a", exactly what an
+        // echo does) is fast enough for both notifications to arrive
+        // before this loop gets to either. Popping only one per pass and
+        // then recomputing below (which calls pio_sm_clear_fifos() when
+        // anything changed) would wipe the second notification while it
+        // was still sitting here unprocessed - not a rare race, but a
+        // near-certainty for that exact instruction pattern.
+        while (!pio_sm_is_rx_fifo_empty(pio0, bus_sm)) {
             uint32_t word = pio_sm_get(pio0, bus_sm);
-            // Since Step 14a, read_path also pushes into this same FIFO
-            // (a read-completion notification) alongside write_path's
-            // writes - bit 8 (R/W) tells them apart: 1 = write (data in
-            // bits 0-7 is real), 0 = read (bits 0-7 are whatever was on
-            // the bus before this cycle drove it, not meaningful - only
-            // A0, bit 10, matters here). Read notifications are just
-            // discarded for now; Step 14b will use them to pop the RX
-            // ring and refresh STATUS on a genuine DATA (A0=1) read.
+            // read_path (Step 14a) and write_path both push into this same
+            // FIFO - bit 8 (R/W) tells them apart: 1 = write, 0 = a read
+            // just completed. Bit 10 (A0) selects STATUS (0) vs DATA (1).
             bool write = (word >> 8) & 1;
+            bool a0 = (word >> 10) & 1;
             if (write) {
-                tx_ring_push(word & 0xFF); // port-agnostic since Step 12 - A0 ignored
+                if (a0) { // DATA write - STATUS is read-only, ignore A0=0
+                    tx_ring_push(word & 0xFF);
+                }
+            } else if (a0) {
+                // A genuine DATA read just completed - advance past the
+                // byte that was served, so the next STATUS/DATA snapshot
+                // reflects it being gone. STATUS (A0=0) reads are
+                // non-destructive by design - nothing to do for those.
+                rx_ring_advance();
+                diag_advance_count++;
             }
         }
 
-        uint8_t rx_byte;
-        if (rx_ring_pop(&rx_byte)) {
-            // Drop any stale, unconsumed served value first - the TX FIFO
-            // has real queue depth, and a value pushed here only gets
-            // consumed once a genuine Z80 read happens (PIO's "pull
-            // noblock" drains oldest-first). Without this, a backlog rides
-            // along as a permanent lag instead of ever catching up to
-            // "latest". This also clears the write-capture RX FIFO
-            // checked above - pio_sm_clear_fifos() can't target just one
-            // FIFO - so a write landing in the narrow window between that
-            // check and this call would be lost. Accepted as a known
-            // interim gap until Step 14 gives each direction its own real
-            // flow-controlled protocol.
+        // Recompute the current STATUS/DATA snapshot every pass - cheap
+        // (just reading a few volatile head/tail indices, no PIO access)
+        // - but only touch the PIO if it actually changed. That keeps
+        // pio_sm_clear_fifos() calls (which also clear the write/read
+        // notification FIFO checked above, and so can lose a notification
+        // landing in the same narrow window Step 14a already accepted as
+        // an interim gap) down to genuine changes, not every single loop
+        // pass. Cross-core reads of tx_tail (Core 0-owned) are safe here:
+        // single writer, and a uint16_t read is atomic on this hardware.
+        bool tx_ready = ((tx_head + 1) % TX_BUF_SIZE) != tx_tail;
+        bool rx_available = (rx_tail != rx_head);
+        uint8_t data_byte = rx_available ? rx_buf[rx_tail] : 0;
+        uint8_t status_byte = (tx_ready ? STATUS_TX_READY : 0) |
+                               (rx_available ? STATUS_RX_AVAILABLE : 0) |
+                               (diag_advance_count << 2); // TEMP diagnostic, Step 14c
+        uint32_t combined = ((uint32_t)data_byte << 8) | status_byte;
+
+        if (combined != served) {
             pio_sm_clear_fifos(pio0, bus_sm);
-            // Both halves carry the same byte: port A and port B (the
-            // Step 9/10 A0 test scaffold) now read identically. That
-            // split only ever existed to prove A0 decoding works, not as
-            // part of the final STATUS/DATA design (Step 14) - reusing
-            // read_path's existing combined-word mechanism unchanged is
-            // simpler than touching the PIO program to remove it.
-            uint32_t combined = ((uint32_t)rx_byte << 8) | rx_byte;
             pio_sm_put(pio0, bus_sm, combined);
+            served = combined;
         }
     }
 }
