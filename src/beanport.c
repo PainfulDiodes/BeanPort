@@ -1,27 +1,23 @@
+#include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
+
 #include "bus_capture.pio.h"
-#include <stdio.h>
+
+// Data: GPIO 0-7
+// R/W: GPIO 8
+// EN#: GPIO 9
+// A0: GPIO 10
 
 int main() {
     stdio_init_all();
 
-    for (int i = 0; i < 8; i++) {
-        gpio_init(i);
-        gpio_set_dir(i, GPIO_IN);
-        pio_gpio_init(pio0, i);
-    }
+    // gpio_init / gpio_set_dir GPIO_IN are not needed here - pins default to inputs
 
-    // R/W and EN# (GP8/GP9, second level shifter) are read directly by
-    // the PIO program via "jmp pin"/"wait gpio", which read the raw pad
-    // state regardless of pin function - no pio_gpio_init needed for them.
-    // GP10 (A0) isn't used by the PIO program yet - reserved for the
-    // register-scheme work (todo.md).
-    gpio_init(8);
-    gpio_set_dir(8, GPIO_IN);
-    gpio_init(9);
-    gpio_set_dir(9, GPIO_IN);
+    // Function select for the data GPIOs to use output from pio0
+    // Address and control lines are always inputs, so not included here
+    for (int i = 0; i < 8; i++) pio_gpio_init(pio0, i);
 
     uint sm = pio_claim_unused_sm(pio0, true);
     uint offset = pio_add_program(pio0, &bus_capture_program);
