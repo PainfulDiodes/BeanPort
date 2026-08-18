@@ -3,7 +3,7 @@
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 
-#include "bus_capture.pio.h"
+#include "beanport.pio.h"
 
 // Data: GPIO 0-7
 // R/W: GPIO 8

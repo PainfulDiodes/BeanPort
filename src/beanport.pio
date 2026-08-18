@@ -1,5 +1,5 @@
 ;
-; bus_capture.pio - captures D0-D7 on genuine Z80 I/O write cycles.
+; beanport.pio - captures D0-D7 on genuine Z80 I/O write cycles.
 ;
 ; GP0-7 = D0-D7 (IN pins, base 0)
 ; GP8   = R/W   (JMP pin; un-inverted Z80 RD#, active-low = reading)
