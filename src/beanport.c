@@ -15,8 +15,8 @@ int main() {
 
     // gpio_init / gpio_set_dir GPIO_IN are not needed here - pins default to inputs
 
-    // Function select for the data GPIOs to use output from pio0
-    // Address and control lines are always inputs, so not included here
+    // PIO function select for the data GPIOs so that they can be used as outputs
+    // Address and control lines are only ever PIO inputs, so they are not included here
     for (int i = 0; i < 8; i++) pio_gpio_init(pio0, i);
 
     uint sm = pio_claim_unused_sm(pio0, true);
