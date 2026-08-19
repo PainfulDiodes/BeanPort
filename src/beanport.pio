@@ -25,7 +25,7 @@
 ; the next write cycle starts, there's nothing to gain by re-triggering
 ; before this one has ended.
 
-.program bus_capture
+.program beanport
 
 .wrap_target
 retry:
