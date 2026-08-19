@@ -54,9 +54,9 @@ capture:
 
 static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint base_pin) {
 
-    pio_sm_config sm_cfg = beanport_program_get_default_config(offset);
-    sm_config_set_in_pins(&sm_cfg, base_pin);
-    sm_config_set_jmp_pin(&sm_cfg, 8); // GP8 = R/W
+    pio_sm_config c = beanport_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, base_pin);
+    sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
     
     // D0-D7 as inputs; only the data pins will be function selected for the PIO 
     // Address and control lines are only ever sensed by the PIO, never output to
@@ -76,13 +76,13 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     // bits at bit 0, so the sampled byte lands in the lowest 8 bits of the
     // 32-bit word for ease of use in C
     sm_config_set_in_shift(
-        &sm_cfg, 
+        &c, 
         false,  // shift-to-right = false
         false,  // autopush disabled
         32      // autopush threshold (not significant as autopush is disabled)
     );
 
-    pio_sm_init(pio, sm, offset, &sm_cfg);
+    pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
 }
 
