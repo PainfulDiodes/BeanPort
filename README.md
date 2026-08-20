@@ -4,9 +4,9 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early prototyping stage, with the core write path proven end-to-end against real hardware: hardware address decoding, level-shifted lines to the Pico, a PIO state machine that captures a Z80 I/O write cycle (qualified by R/W which is Z80 RD#) - and forwards each byte straight over USB. Verified with keyboard input on BeanBoard keyboard sending to the Picos port address.
+Early prototyping stage, with the core read and write paths proven end-to-end against real hardware: hardware address decoding, level-shifted lines to the Pico, a PIO state machine that captures a Z80 I/O write cycle (qualified by R/W which is Z80 RD#) - and forwards each byte straight over USB. Verified with keyboard input on BeanBoard keyboard sending to the Picos port address.
 
-Still exploratory, only a single test port is decoded so far (no STATUS/DATA register scheme yet), no write path back to the Z80.
+Still exploratory, only a single test port is decoded so far - no STATUS/DATA register scheme yet, so not possible to poll for available data on the z80 side.
 
 ## Overview
 

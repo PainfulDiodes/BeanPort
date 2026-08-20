@@ -17,6 +17,17 @@ int main() {
     beanport_program_init(pio, sm, offset, PIO_BASE_PIN);
 
     while (true) {
-        putchar((uint8_t)pio_sm_get_blocking(pio, sm));
+        // pio -> USB, skips if there is no data
+        if (!pio_sm_is_rx_fifo_empty(pio, sm)) {
+            uint32_t rx_frame = pio_sm_get(pio, sm);
+            // beanport.pio puts the data into the low 8 bits so we can cast to a byte
+            putchar((uint8_t)rx_frame);
+        }
+
+        // USB -> pio, skips if there is no data
+        int c = stdio_getchar_timeout_us(0);
+        if (c != PICO_ERROR_TIMEOUT) {
+            pio_sm_put(pio, sm, (uint8_t)c);
+        }
     }
 }

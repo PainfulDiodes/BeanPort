@@ -1,27 +1,48 @@
 ;
-; beanport.pio - captures D0-D7 on Z80 port write cycles.
+; beanport.pio
+; captures D0-D7 on parallel port write cycles and
+; drives D0-D7 on parallel port read cycles.
 ;
 ; GP0-7 = D0-D7
 ; GP9   = EN#   wait for this to go low before doing anything
 ; GP8   = R/W   HIGH = write, assigned as JMP pin to branch to capture when writing
 ;
-; Once a genuine write is confirmed, wait a deliberate margin before
-; sampling, push the byte, then wait for EN# to deassert before re-arming
+; Write path: once a write is confirmed, wait a deliberate margin
+; before sampling, push the byte, then wait for EN# to deassert before
+; re-arming.
+;
+; Read path: on a read, flip D0-7 to outputs, drive the latest
+; byte recieved from the FIFO buffer, or the previous one if the buffer is empty
+; then flip back to inputs when EN# deasserts. 
 
 .program beanport
+
+; initialise - this will be sent on a read before actual data is in the FIFO
+set x, 0                
 
 .wrap_target
 retry:
     wait 0 gpio 9       ; Wait for EN# to go to 0 (asserted)
     jmp pin capture     ; R/W high -> write
-    jmp retry           ; R/W low  -> read
+    jmp read_path       ; R/W low  -> read
 capture:
-    ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), which is half a 
+    ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), which is half a
     ; Z80 T-state (100ns @ 10MHz). Analysis is required to determine what the delay should be
     nop [6]
     in pins, 8          ; sample D0-D7
     push                ; hand the byte to the RX FIFO
     wait 1 gpio 9       ; wait for EN# to deassert before re-arming
+    jmp retry
+read_path:
+    pull noblock        ; latest byte from FIFO
+    mov x, osr          ; stash value
+    mov osr, !null      ; set all 1s
+    out pindirs, 8      ; D0-D7 -> outputs (set pindirs only sets 5 bits)
+    mov osr, x          ; restore value
+    out pins, 8         ; drive the byte onto D0-D7
+    wait 1 gpio 9       ; wait for EN# to go high (deassert)
+    mov osr, null
+    out pindirs, 8      ; D0-D7 -> inputs again
 .wrap
 
 % c-sdk {
@@ -30,18 +51,19 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
 
     pio_sm_config c = beanport_program_get_default_config(offset);
     sm_config_set_in_pins(&c, base_pin);
+    sm_config_set_out_pins(&c, base_pin, 8); 
     sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
-    
-    // D0-D7 as inputs; only the data pins will be function selected for the PIO 
+
+    // D0-D7 as inputs; only the data pins will be function selected for the PIO
     // Address and control lines are only ever sensed by the PIO, never output to
     // so they are not included here
 
     // default the data pins to PIO inputs
     pio_sm_set_consecutive_pindirs(
-        pio, sm, base_pin, 
+        pio, sm, base_pin,
         8,      // data pins
         false   // is_out=false
-    ); 
+    );
 
     // PIO function select the data GPIOs
     for (int i = 0; i < 8; i++) pio_gpio_init(pio, i);
@@ -50,11 +72,13 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     // bits at bit 0, so the sampled byte lands in the lowest 8 bits of the
     // 32-bit word for ease of use in C
     sm_config_set_in_shift(
-        &c, 
+        &c,
         false,  // shift-to-right = false
         false,  // autopush disabled
         32      // autopush threshold (not significant as autopush is disabled)
     );
+
+    // no need to call sm_config_set_out_shift() - accept the default shift-to-right
 
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
