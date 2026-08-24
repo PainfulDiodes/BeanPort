@@ -17,7 +17,7 @@
 ;
 ; Calibration delay (cycles) - bump and rebuild to find the real
 ; tolerable margin where the Pico can make data available within
-; the Z80 read cycle 
+; the Z80 read cycle (delay = 0 means 1 NOP instruction)
 .define CAL_DELAY 0
 
 .program beanport
@@ -43,7 +43,7 @@ read_path:
     mov x, osr          ; stash value
     mov osr, !null      ; set all 1s
     out pindirs, 8      ; D0-D7 -> outputs (set pindirs only sets 5 bits)
-    ; nop [CAL_DELAY]    ; calibration delay - commented out for a true 0-cycle baseline
+    nop [CAL_DELAY]      ; calibration delay - see header comment
     mov osr, x          ; restore value
     out pins, 8         ; drive the byte onto D0-D7
     wait 1 gpio 9       ; wait for EN# to go high (deassert)
