@@ -14,9 +14,11 @@
 ; before sampling, push the byte, then wait for EN# to deassert before
 ; re-arming.
 ;
-; Read path: flip D0-7 to outputs first (needed either way), then branch on
-; A0. 
-; DATA (A0=1) output the latest byte received from the FIFO, or the
+; Read path: critical timing - a tight budget measured from EN#
+; asserting to data being output. Falls through from `jmp pin capture`
+; into read_path; `mov osr, pins` grabs a live GPIO snapshot in one
+; instruction to extract A0 and the STATUS byte.
+; DATA (A0=1) outputs the latest byte received from the FIFO, or the
 ; previous one if the FIFO is empty. 
 ; STATUS (A0=0) output GP11/GP12's current state directly as bit0/bit1
 ; the core is the source of truth for both bits, this just relays whatever it last set.
@@ -30,8 +32,29 @@ set x, 0
 .wrap_target
 retry:
     wait 0 gpio 9       ; Wait for EN# to go to 0 (asserted)
-    jmp pin capture     ; R/W high -> write
-    jmp read_path       ; R/W low  -> read
+    jmp pin capture     ; R/W high -> write; falls through to read_path otherwise
+read_path:
+    mov osr, !null      ; set all 1s
+    out pindirs, 8      ; D0-D7 -> outputs (set pindirs only sets 5 bits)
+
+    mov osr, pins        ; live snapshot of GP0-31, rotated so GP0 = bit 0
+    out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#); osr bit 0 = A0
+    mov y, osr
+    jmp !y status_path      ; A0=0 -> port 12 (STATUS)
+data_path:
+    pull noblock        ; latest byte from FIFO (or x, auto-substituted if empty)
+    mov x, osr          ; re-cache it
+    out pins, 8         ; output the byte onto D0-D7
+    jmp output_done
+status_path:
+    mov osr, pins        ; re-sample - cheap enough not to bother saving/reusing
+    out null, 11           ; discard bits 0-10; osr bit0 = GP11 (TX ready), bit1 = GP12 (RX available)
+    out pins, 8              ; output the status byte (bits 2-7 come out zero)
+output_done:
+    wait 1 gpio 9       ; wait for EN# to go high (deassert)
+    mov osr, null
+    out pindirs, 8      ; D0-D7 -> inputs again
+    jmp retry
 capture:
     ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), which is half a
     ; Z80 T-state (100ns @ 10MHz). Analysis is required to determine what the delay should be
@@ -40,30 +63,6 @@ capture:
     push                ; hand the byte to the RX FIFO
     wait 1 gpio 9       ; wait for EN# to deassert before re-arming
     jmp retry
-read_path:
-    mov osr, !null      ; set all 1s
-    out pindirs, 8      ; D0-D7 -> outputs (set pindirs only sets 5 bits)
-
-    ; sample GP0-12 in one go
-    mov isr, null
-    in pins, 13
-    mov osr, isr        ; copy for the A0 test
-    out null, 10        ; discard bits 0-9; osr bit 0 = A0
-    mov y, osr
-    jmp !y status_path  ; A0=0 -> port 12 (STATUS)
-data_path:
-    pull noblock        ; latest byte from FIFO (or x, auto-substituted if empty)
-    mov x, osr          ; re-cache it
-    out pins, 8         ; output the byte onto D0-D7
-    jmp output_done
-status_path:
-    mov osr, isr        ; re-copy the original GP0-12 sample
-    out null, 11        ; discard bits 0-10; osr bit0 = GP11 (TX ready), bit1 = GP12 (RX available)
-    out pins, 8         ; output the status byte (bits 2-7 come out zero)
-output_done:
-    wait 1 gpio 9       ; wait for EN# to go high (deassert)
-    mov osr, null
-    out pindirs, 8      ; D0-D7 -> inputs again
 .wrap
 
 % c-sdk {
