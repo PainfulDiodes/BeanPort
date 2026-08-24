@@ -39,7 +39,7 @@ read_path:
 
     mov osr, pins        ; live snapshot of GP0-31, rotated so GP0 = bit 0
     out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#); osr bit 0 = A0
-    mov y, osr
+    out y, 1               ; isolate exactly bit 0 (A0) into y - `out` replaces the destination with the extracted width, zero-extended
     jmp !y status_path      ; A0=0 -> port 12 (STATUS)
 data_path:
     pull noblock        ; latest byte from FIFO (or x, auto-substituted if empty)
@@ -49,6 +49,8 @@ data_path:
 status_path:
     mov osr, pins        ; re-sample - cheap enough not to bother saving/reusing
     out null, 11           ; discard bits 0-10; osr bit0 = GP11 (TX ready), bit1 = GP12 (RX available)
+    out y, 2                 ; isolate exactly the two status bits 
+    mov osr, y
     out pins, 8              ; output the status byte (bits 2-7 come out zero)
 output_done:
     wait 1 gpio 9       ; wait for EN# to go high (deassert)
