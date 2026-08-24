@@ -18,7 +18,7 @@
 ; Calibration delay (cycles) - bump and rebuild to find the real
 ; tolerable margin where the Pico can make data available within
 ; the Z80 read cycle (delay = 0 means 1 NOP instruction)
-.define CAL_DELAY 0
+.define CAL_DELAY 12
 
 .program beanport
 
