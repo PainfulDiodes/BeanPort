@@ -10,9 +10,7 @@ Bulk transfer throughput has been measured.
 
 Z80-to-USB: solid, ~45KB/s sustained with zero data loss across repeated runs.
 
-USB-to-Z80 is the current weak point under sustained load: a fast burst can outrun the Z80's own read rate, and because bytes are queued for the Z80 without checking whether the PIO's 4-word FIFO has room, the excess is silently dropped rather than buffered - a burst well beyond typical human typing speed can lose a large fraction of its data this way. Single bytes and human-paced typing are unaffected; a ring buffer between the USB stack and the PIO bus interface is the planned fix.
-
-Still exploratory: only this one port pair is decoded, and the firmware runs single-core.
+USB-to-Z80: a fast burst can outrun the Z80's own read rate, and because bytes are queued for the Z80 without checking whether the PIO's 4-word FIFO has room, the excess is silently dropped rather than buffered - a burst well beyond typical human typing speed can lose a large fraction of its data this way. Single bytes and human-paced typing are unaffected; a ring buffer between the USB stack and the PIO bus interface is the planned fix.
 
 ## Overview
 
