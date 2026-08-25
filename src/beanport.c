@@ -37,10 +37,14 @@ int main() {
             putchar((uint8_t)rx_frame);
         }
 
-        // USB -> pio, skips if there is no data
-        int c = stdio_getchar_timeout_us(0);
-        if (c != PICO_ERROR_TIMEOUT) {
-            pio_sm_put(pio, sm, (uint8_t)c);
+        // USB -> pio, skips if there is no data or the PIO FIFO has no room -
+        // leaves the byte in TinyUSB's own buffer rather than pulling it and
+        // then silently dropping it when pio_sm_put() finds the FIFO full
+        if (!pio_sm_is_tx_fifo_full(pio, sm)) {
+            int c = stdio_getchar_timeout_us(0);
+            if (c != PICO_ERROR_TIMEOUT) {
+                pio_sm_put(pio, sm, (uint8_t)c);
+            }
         }
     }
 }
