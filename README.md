@@ -6,11 +6,15 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 Early prototyping stage. The native interface — STATUS and DATA ports distinguished by address line A0 — is implemented and proven end-to-end on real hardware: a PIO state machine on the Pico captures Z80 I/O writes and drives Z80 I/O reads, gated by R/W and EN# (externally derived from IORQ# and address decoding), with the STATUS byte (TX-ready/RX-available bits) reflecting live PIO FIFO occupancy. Verified as a working bidirectional terminal bridge against real Z80 hardware: bytes typed in the Pico's USB terminal reach the target's console, and target keypresses reach the USB terminal, both directions live simultaneously with no pacing workarounds.
 
-Bulk transfer throughput has been measured.
+Bulk transfer throughput has been measured, in both directions.
 
 Z80-to-USB: solid, ~45KB/s sustained with zero data loss across repeated runs.
 
-USB-to-Z80: a fast burst can outrun the Z80's own read rate, and because bytes are queued for the Z80 without checking whether the PIO's 4-word FIFO has room, the excess is silently dropped rather than buffered - a burst well beyond typical human typing speed can lose a large fraction of its data this way. Single bytes and human-paced typing are unaffected; a ring buffer between the USB stack and the PIO bus interface is the planned fix.
+USB-to-Z80: reliable for normal use (typing, and a real terminal's paste of a file - tested clean at 1KB) but not for a raw, unthrottled burst write from a naive client (on the USB host).
+
+For anything sending bulk data programmatically: pace writes in small chunks with a short delay between them rather than sending the whole payload in one call.
+
+I am considering a dedicated bulk-transfer mode with real handshaking (the Z80 acknowledging each chunk, which is propagated back to the sender, so the sender doesn't need to guess a safe delay).
 
 ## Overview
 
