@@ -4,7 +4,7 @@ Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentia
 
 ## Status
 
-Early prototyping stage. The native interface — STATUS and DATA ports distinguished by address line A0 — is implemented and proven end-to-end on real hardware: a PIO state machine on the Pico captures Z80 I/O writes and drives Z80 I/O reads, gated by R/W and EN# (externally derived from IORQ# and address decoding), with the STATUS byte (TX-ready/RX-available bits) reflecting live PIO FIFO occupancy. Verified as a working bidirectional terminal bridge against real Z80 hardware: bytes typed in the Pico's USB terminal reach the target's console, and target keypresses reach the USB terminal, both directions live simultaneously with no pacing workarounds.
+Prototyping stage. The native interface — STATUS and DATA ports distinguished by address line A0 — is implemented and proven end-to-end on real Z80 hardware: a PIO state machine on the Pico captures Z80 I/O writes and drives Z80 I/O reads, gated by R/W and EN# (externally derived from IORQ# and address decoding), with the STATUS byte (TX-ready/RX-available bits) reflecting live PIO FIFO occupancy. Verified as a working bidirectional terminal bridge against real Z80 hardware: bytes typed in the Pico's USB terminal reach the target's console, and target keypresses reach the USB terminal, both directions live simultaneously with no pacing workarounds.
 
 Bulk transfer throughput has been measured, in both directions.
 
@@ -20,11 +20,14 @@ I am considering a dedicated bulk-transfer mode with real handshaking (the Z80 a
 
 The Pico acts as a transparent byte pipe between a host terminal (via USB CDC — driverless on macOS, Linux, and Windows) and an 8-bit system's bus. Primary target: a native interface (STATUS/DATA ports) for the BeanZee/BeanDeck homebrew computer.
 
+STATUS is designed to double as a simple command channel for anything beyond byte transfer (e.g. a future Wi-Fi config path) rather than adding more address-decoded ports — not yet implemented; STATUS is read-only today.
+
 ## Possible Future Development
 
 - **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket
 - **Wi-Fi console** — on Pico W / Pico 2 W hardware
 - **RC2014 bus card** — packaging as a card for the RC2014 backplane
+- **Dedicated bulk-transfer mode** — chunk+ACK handshaking for a future CLI/GUI host client, more robust than the fixed-delay pacing described above
 
 A UART (TX/RX, optional CTS/RTS) passthrough mode may also be worth adding, which wouldn't be justified on its own: USB-UART adapters are cheap and plentiful. It may instead be more valuable as a way to give BeanZee its own UART alongside USB (it doesn't have one).
 
