@@ -10,9 +10,6 @@
 #define TX_READY_PIN 11
 #define RX_AVAILABLE_PIN 12
 
-// Wi-Fi-only additions would go behind
-//  if (PICO_CYW43_SUPPORTED)
-
 int main() {
     stdio_init_all();
 
