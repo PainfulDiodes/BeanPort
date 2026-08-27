@@ -1,70 +1,56 @@
-;
 ; beanport.pio
-; captures D0-D7 on parallel port write cycles and
-; drives D0-D7 on parallel port read cycles.
+;
+; captures D0-D7 on bus write cycles and
+; drives D0-D7 on bus read cycles
 ;
 ; GP0-7  = D0-D7
-; GP8    = R/W   HIGH = write, assigned as JMP pin to branch to capture when writing
-; GP9    = EN#   wait for this to go low before doing anything
-; GP10   = A0    port/register select : 0 = STATUS (port 12), 1 = DATA (port 13)
-; GP11   = TX ready - driven by the core (SIO), sensed here as a plain input, same as A0
-; GP12   = RX available - driven by the core (SIO), sensed here as a plain input, same as A0
-;
-; Write path: once a write is confirmed, wait a deliberate margin
-; before sampling, push the byte, then wait for EN# to deassert before
-; re-arming.
-;
-; Read path: critical timing - a tight budget measured from EN#
-; asserting to data being output. Falls through from `jmp pin capture`
-; into read_path; `mov osr, pins` grabs a live GPIO snapshot in one
-; instruction to extract A0 and the STATUS byte.
-; DATA (A0=1) outputs the latest byte received from the FIFO, or the
-; previous one if the FIFO is empty. 
-; STATUS (A0=0) output GP11/GP12's current state directly as bit0/bit1
-; the core is the source of truth for both bits, this just relays whatever it last set.
-; Flip D0-7 back to inputs once EN# deasserts.
+; GP8    = R/W - HIGH = write (jmp pin)
+; GP9    = EN#
+; GP10   = A0 - 0 = STATUS/CONFIG, 1 = DATA
+; GP11   = TX_READY_PIN - room in the incoming FIFO for the bus to transmit
+; GP12   = RX_AVAILABLE_PIN - a byte is waiting in the outgoing FIFO for the bus to receive
 
 .program beanport
 
-; initialise - this will be sent on a read before actual data is in the FIFO
-set x, 0
+; initialise
+set x, 0                  ; data cache
 
 .wrap_target
-retry:
-    wait 0 gpio 9       ; Wait for EN# to go to 0 (asserted)
-    jmp pin capture     ; R/W high -> write; falls through to read_path otherwise
-read_path:
-    mov osr, !null      ; set all 1s
-    out pindirs, 8      ; D0-D7 -> outputs (set pindirs only sets 5 bits)
-
-    mov osr, pins        ; live snapshot of GP0-31, rotated so GP0 = bit 0
-    out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#); osr bit 0 = A0
-    out y, 1               ; isolate exactly bit 0 (A0) into y - `out` replaces the destination with the extracted width, zero-extended
-    jmp !y status_path      ; A0=0 -> port 12 (STATUS)
-data_path:
-    pull noblock        ; latest byte from FIFO (or x, auto-substituted if empty)
-    mov x, osr          ; re-cache it
-    out pins, 8         ; output the byte onto D0-D7
-    jmp output_done
-status_path:
-    mov osr, pins        ; re-sample - cheap enough not to bother saving/reusing
-    out null, 11           ; discard bits 0-10; osr bit0 = GP11 (TX ready), bit1 = GP12 (RX available)
-    out y, 2                 ; isolate exactly the two status bits 
-    mov osr, y
-    out pins, 8              ; output the status byte (bits 2-7 come out zero)
-output_done:
-    wait 1 gpio 9       ; wait for EN# to go high (deassert)
-    mov osr, null
-    out pindirs, 8      ; D0-D7 -> inputs again
-    jmp retry
-capture:
-    ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), which is half a
-    ; Z80 T-state (100ns @ 10MHz). Analysis is required to determine what the delay should be
+start:
+    wait 0 gpio 9         ; Wait for EN# to be asserted (low)
+    jmp pin bus_write     ; R/W (jmp pin) high = write, low = read
+bus_read:
+    mov osr, !null        ; all 1s
+    out pindirs, 8        ; Set D0-D7 as outputs (set pindirs only sets 5 bits)
+    mov osr, pins         ; snapshot of GP0-31
+    out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#) - bit 0 is now A0
+    out y, 1              ; isolate bit 0 (A0) into y - y is replaced by value of single bit
+    jmp !y read_status    ; A0=0 -> STATUS
+read_data:
+    pull noblock          ; byte from FIFO - x (cache) is substituted if FIFO is empty
+    mov x, osr            ; re-cache it
+    out pins, 8           ; output the byte onto D0-D7
+    jmp read_done
+read_status:
+    mov osr, pins         ; re-sample data
+    out null, 11          ; discard bits 0-10 (D0-D7, R/W, EN#, A0) - bit 0 is now GP11 (TX_READY_PIN), bit1 = GP12 (RX available)
+    out y, 2              ; isolate bit 0 (TX_READY_PIN) and bit 1 (RX_AVAILABLE_PIN)
+    mov osr, y            ; load the OSR with the status bits
+    out pins, 8           ; output the status byte
+read_done:
+    wait 1 gpio 9         ; wait for EN# to deassert
+    mov osr, null         ; all 0s
+    out pindirs, 8        ; Set D0-D7 as inputs (set pindirs only sets 5 bits)
+    jmp start
+bus_write:
+    ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), estimated to be
+    ; half a 10MHz Z80 T-state. 
+    ; TODO: further analysis is required
     nop [6]
-    in pins, 8          ; sample D0-D7
-    push                ; hand the byte to the RX FIFO
-    wait 1 gpio 9       ; wait for EN# to deassert before re-arming
-    jmp retry
+    in pins, 8            ; sample D0-D7
+    push                  ; > RX FIFO
+    wait 1 gpio 9         ; wait for EN# to deassert
+    jmp start
 .wrap
 
 % c-sdk {
@@ -77,8 +63,8 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
 
     // D0-D7 as inputs; only the data pins will be function selected for the PIO
-    // Address and control lines are only ever sensed by the PIO, never output to
-    // so they are not included here
+    // PIO only reads address and control lines, so we do not initialise them here
+    // as by default PIOs can read state of any pin
 
     // default the data pins to PIO inputs
     pio_sm_set_consecutive_pindirs(
