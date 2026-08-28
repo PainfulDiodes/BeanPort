@@ -7,8 +7,7 @@
 
 #define PIO_BASE_PIN 0
 
-#define TX_READY_PIN 11
-#define RX_AVAILABLE_PIN 12
+#define READ_AVAILABLE_PIN 11
 
 int main() {
     stdio_init_all();
@@ -19,16 +18,13 @@ int main() {
     uint sm = pio_claim_unused_sm(pio, true);
     beanport_program_init(pio, sm, offset, PIO_BASE_PIN);
 
-    gpio_init(TX_READY_PIN);
-    gpio_set_dir(TX_READY_PIN, GPIO_OUT);
-    gpio_init(RX_AVAILABLE_PIN);
-    gpio_set_dir(RX_AVAILABLE_PIN, GPIO_OUT);
+    gpio_init(READ_AVAILABLE_PIN);
+    gpio_set_dir(READ_AVAILABLE_PIN, GPIO_OUT);
 
     while (true) {
-        // Set TX ready: room in the incoming FIFO for the bus to transmit
-        gpio_put(TX_READY_PIN, !pio_sm_is_rx_fifo_full(pio, sm));
-        // Set RX available: a byte is waiting in the outgoing FIFO for the bus to receive
-        gpio_put(RX_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
+        // write-ready is tested by the PIO via mov status
+        // Set read-available
+        gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
 
         // pio -> USB
         if (!pio_sm_is_rx_fifo_empty(pio, sm)) {

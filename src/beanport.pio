@@ -7,8 +7,7 @@
 ; GP8    = R/W - HIGH = write (jmp pin)
 ; GP9    = EN#
 ; GP10   = A0 - 0 = STATUS/CONFIG, 1 = DATA
-; GP11   = TX_READY_PIN - room in the incoming FIFO for the bus to transmit
-; GP12   = RX_AVAILABLE_PIN - a byte is waiting in the outgoing FIFO for the bus to receive
+; GP11   = READ_AVAILABLE_PIN - a byte is waiting in the TX-FIFO for the bus to receive
 
 .program beanport
 
@@ -32,10 +31,17 @@ read_data:
     out pins, 8           ; output the byte onto D0-D7
     jmp read_done
 read_status:
-    mov osr, pins         ; re-sample data
-    out null, 11          ; discard bits 0-10 (D0-D7, R/W, EN#, A0) - bit 0 is now GP11 (TX_READY_PIN), bit1 = GP12 (RX available)
-    out y, 2              ; isolate bit 0 (TX_READY_PIN) and bit 1 (RX_AVAILABLE_PIN)
-    mov osr, y            ; load the OSR with the status bits
+    mov isr, null         ; clear ISR
+    mov osr, pins         ; load osr with pin snapshot
+    out null, 11          ; shift right - discard bits 0-10 (D0-D7, R/W, EN#, A0)
+                          ; read-available pin is set by the core loop
+    out y, 1              ; y = osr bit 0 = read-available (GP11)
+    in y, 1               ; shift 1 bit from y into the ISR = read-available
+                          ; status all 1s if the RX-FIFO has room (write-ready)
+    mov y, status         ; y = status = write-ready
+    in y, 1               ; shift 1 bit from y into the ISR = write-ready (ISR bit 0)
+                          ; ISR bit 1 now = read-available
+    mov osr, isr          ; move the assembled status byte into osr
     out pins, 8           ; output the status byte
 read_done:
     wait 1 gpio 9         ; wait for EN# to deassert
@@ -61,6 +67,10 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     sm_config_set_in_pins(&c, base_pin);
     sm_config_set_out_pins(&c, base_pin, 8); 
     sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
+
+    // mov status is set automatically on RX-FIFO (write-ready)
+    // this value is therefore never stale
+    sm_config_set_mov_status(&c, STATUS_RX_LESSTHAN, 4);
 
     // D0-D7 as inputs; only the data pins will be function selected for the PIO
     // PIO only reads address and control lines, so we do not initialise them here
