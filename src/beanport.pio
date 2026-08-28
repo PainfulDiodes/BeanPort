@@ -32,15 +32,16 @@ read_data:
     jmp read_done
 read_status:
     mov isr, null         ; clear ISR
+                          ; status all 1s if the RX-FIFO has room (write-ready)
+    mov y, status         ; y = status = write-ready
+    in y, 1               ; shift 1 bit from y into the ISR = write-ready
     mov osr, pins         ; load osr with pin snapshot
     out null, 11          ; shift right - discard bits 0-10 (D0-D7, R/W, EN#, A0)
                           ; read-available pin is set by the core loop
     out y, 1              ; y = osr bit 0 = read-available (GP11)
-    in y, 1               ; shift 1 bit from y into the ISR = read-available
-                          ; status all 1s if the RX-FIFO has room (write-ready)
-    mov y, status         ; y = status = write-ready
-    in y, 1               ; shift 1 bit from y into the ISR = write-ready (ISR bit 0)
-                          ; ISR bit 1 now = read-available
+    in y, 1               ; shift 1 bit from y into the ISR = read-available (ISR bit 0)
+                          ; ISR bit 1 now = write-ready - matches the 6850 ACIA
+                          ; convention (RDRF/bit0, TDRE/bit1), not the 8251's
     mov osr, isr          ; move the assembled status byte into osr
     out pins, 8           ; output the status byte
 read_done:
