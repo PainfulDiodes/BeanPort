@@ -9,6 +9,7 @@
 #define PIO_BASE_PIN 0
 
 #define READ_AVAILABLE_PIN 11
+#define WRITE_READY_PIN 12
 
 static PIO pio;
 static uint sm;
@@ -19,10 +20,10 @@ static uint sm;
 
 static void core1_main() {
     while (true) {
-        
-        // write-ready is tested by the PIO via mov status
-        // Set read-available
+
+        // status pins to the outside world, and also read by the PIO SM
         gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
+        gpio_put(WRITE_READY_PIN, !pio_sm_is_rx_fifo_full(pio, sm));
 
         // pio -> core0 (USB)
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
@@ -51,6 +52,8 @@ int main() {
 
     gpio_init(READ_AVAILABLE_PIN);
     gpio_set_dir(READ_AVAILABLE_PIN, GPIO_OUT);
+    gpio_init(WRITE_READY_PIN);
+    gpio_set_dir(WRITE_READY_PIN, GPIO_OUT);
 
     multicore_launch_core1(core1_main);
 
