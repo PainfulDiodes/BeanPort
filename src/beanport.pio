@@ -8,6 +8,9 @@
 ; GP9    = EN#
 ; GP10   = A0 - 0 = STATUS/CONFIG, 1 = DATA
 ; GP11   = READ_AVAILABLE_PIN - a byte is waiting in the TX-FIFO for the bus to receive
+; GP12   = WRITE_READY_PIN - EXPERIMENTAL: mirrored GPIO instead of native mov status,
+;          to measure the timing margin a two-mirrored-pin scheme would need. Refreshed by the core-1 loop, same as
+;          GP11 - reintroduces the staleness risk mov status was moved to avoid.
 
 .program beanport
 
@@ -32,16 +35,13 @@ read_data:
     jmp read_done
 read_status:
     mov isr, null         ; clear ISR
-                          ; status all 1s if the RX-FIFO has room (write-ready)
-    mov y, status         ; y = status = write-ready
-    in y, 1               ; shift 1 bit from y into the ISR = write-ready
     mov osr, pins         ; load osr with pin snapshot
     out null, 11          ; shift right - discard bits 0-10 (D0-D7, R/W, EN#, A0)
-                          ; read-available pin is set by the core loop
-    out y, 1              ; y = osr bit 0 = read-available (GP11)
-    in y, 1               ; shift 1 bit from y into the ISR = read-available (ISR bit 0)
-                          ; ISR bit 1 now = write-ready - matches the 6850 ACIA
-                          ; convention (RDRF/bit0, TDRE/bit1), not the 8251's
+                          ; bit 0 now = GP11 (read-available), bit 1 = GP12 (write-ready)
+    out y, 2              ; y = both mirror bits together: read-available (bit 0), write-ready (bit 1)
+    in y, 2               ; insert both into ISR in one shot, same relative order -
+                          ; ISR bit 0 = read-available, bit 1 = write-ready, matching
+                          ; the 6850 ACIA convention (RDRF/bit0, TDRE/bit1)
     mov osr, isr          ; move the assembled status byte into osr
     out pins, 8           ; output the status byte
 read_done:
@@ -69,9 +69,9 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     sm_config_set_out_pins(&c, base_pin, 8); 
     sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
 
-    // mov status is set automatically on RX-FIFO (write-ready)
-    // this value is therefore never stale
-    sm_config_set_mov_status(&c, STATUS_RX_LESSTHAN, 4);
+    // EXPERIMENTAL: write-ready no longer uses native mov status (see header
+    // comment) - sm_config_set_mov_status() call removed, both mirror pins are
+    // sourced from GPIO snapshots instead.
 
     // D0-D7 as inputs; only the data pins will be function selected for the PIO
     // PIO only reads address and control lines, so we do not initialise them here

@@ -9,6 +9,13 @@
 #define PIO_BASE_PIN 0
 
 #define READ_AVAILABLE_PIN 11
+#define WRITE_READY_PIN 12
+
+// EXPERIMENTAL: artificial extra latency added to the end of every core-1 loop
+// iteration, to bisect how much loop-iteration latency the two-mirrored-pin
+// scheme can tolerate before write-ready staleness causes real data loss.
+// 0 = no injected delay (measures the split's own natural margin).
+#define ARTIFICIAL_LOOP_DELAY_US 0
 
 static PIO pio;
 static uint sm;
@@ -19,10 +26,15 @@ static uint sm;
 
 static void core1_main() {
     while (true) {
-        
-        // write-ready is tested by the PIO via mov status
-        // Set read-available
+
+        // EXPERIMENTAL: both STATUS bits are now live GPIO mirrors, refreshed
+        // here each iteration - write-ready no longer uses native mov status.
         gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
+        gpio_put(WRITE_READY_PIN, !pio_sm_is_rx_fifo_full(pio, sm));
+
+#if ARTIFICIAL_LOOP_DELAY_US > 0
+        busy_wait_us(ARTIFICIAL_LOOP_DELAY_US);
+#endif
 
         // pio -> core0 (USB)
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
@@ -51,6 +63,8 @@ int main() {
 
     gpio_init(READ_AVAILABLE_PIN);
     gpio_set_dir(READ_AVAILABLE_PIN, GPIO_OUT);
+    gpio_init(WRITE_READY_PIN);
+    gpio_set_dir(WRITE_READY_PIN, GPIO_OUT);
 
     multicore_launch_core1(core1_main);
 
