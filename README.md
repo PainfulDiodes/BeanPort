@@ -16,7 +16,7 @@ For anything sending bulk data programmatically: pace writes in small chunks wit
 
 I am considering a dedicated bulk-transfer mode with real handshaking (the Z80 acknowledging each chunk, which is propagated back to the sender, so the sender doesn't need to guess a safe delay).
 
-The firmware runs USB CDC handling and the bus-facing loop on separate RP2040 cores, communicating via the inter-core FIFO. This keeps the bus-facing loop's timing free of any USB stack interrupt work, and was confirmed on real hardware to fix a rare byte-duplication issue under a fast, unpaced round-trip burst.
+The firmware runs USB CDC handling and the bus-facing loop on separate RP2040 cores, communicating via the inter-core FIFO. This keeps the bus-facing loop's timing free of any USB stack interrupt work, and was confirmed on real hardware to fix a rare byte-duplication issue under a fast, unpaced round-trip burst. Both STATUS bits are simple GPIO mirrors refreshed by that loop, confirmed safe under sustained unpaced bursts even with the loop deliberately slowed down for testing.
 
 ## Overview
 
