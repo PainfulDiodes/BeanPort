@@ -49,7 +49,9 @@ STATUS's two bits are passed to the PIO by setting GPIOs which can be read by th
 
 ## Status
 
-Measured throughput: 10MHz Z80 target to host is solid at ~45KB/s sustained with zero data loss. Host-to-target is reliable for normal operation - using a terminal emulator for typing and pasting text file content, but a raw, unthrottled burst write from a naive client needs pacing (small chunks, a short delay between them). 
+Measured throughput: 10MHz Z80 target to host is solid at ~45KB/s sustained with zero data loss. 
+
+Whilst host-to-target is also reliable for normal operation - using a terminal emulator for typing and pasting text file content - a raw, unthrottled burst write from a client is not reliable and needs pacing: small chunks, a short delay between them.
 
 ## Hardware
 
@@ -71,11 +73,11 @@ uf2 files can be transferred to Pico with standard BOOTSEL.
 
 ## Possible future development
 
+- **Fix the bulk transfer for host to target ** — currently needs chunking / pacing for high speed raw transfers
 - **STATUS/CONFIG** STATUS is designed to double as a simple command channel for anything beyond byte transfer; STATUS is read-only today.
 - **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket. UM245R's RD#/WR# are independent, asynchronous strobes rather than one shared enable line, so this would need 2 PIO state machines running a different PIO program
 - **Wi-Fi console** — using Pico W / Pico 2 W hardware
 - **RC2014 bus card** — packaging as a card for the RC2014 backplane
-- **Dedicated bulk-transfer mode** — chunk+ACK handshaking for a future CLI/GUI host client, more robust than fixed-delay pacing
 - **UART passthrough** — would give the target a UART alongside USB
 
 ## License
