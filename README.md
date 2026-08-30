@@ -73,7 +73,7 @@ uf2 files can be transferred to Pico with standard BOOTSEL.
 
 ## Possible future development
 
-- **Fix the bulk transfer for host to target ** — currently needs chunking / pacing for high speed raw transfers
+- **Fix the bulk transfer for host to target** — currently needs chunking / pacing for high speed raw transfers
 - **STATUS/CONFIG** STATUS is designed to double as a simple command channel for anything beyond byte transfer; STATUS is read-only today.
 - **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket. UM245R's RD#/WR# are independent, asynchronous strobes rather than one shared enable line, so this would need 2 PIO state machines running a different PIO program
 - **Wi-Fi console** — using Pico W / Pico 2 W hardware
