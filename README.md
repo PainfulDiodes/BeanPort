@@ -67,6 +67,8 @@ Binary location: `build/<target>/bin/beanport.uf2`
 
 uf2 files can be transferred to Pico with standard BOOTSEL.
 
+> **Note:** `picotool load -f` can trigger BOOTSEL remotely instead (see `scripts/deploy.sh`), but only once BeanPort (or any other firmware with `pico_stdio_usb`/TinyUSB running) is already on the board - a first flash, or recovering from non-USB firmware, still needs manual BOOTSEL.
+
 ## Possible future development
 
 - **STATUS/CONFIG** STATUS is designed to double as a simple command channel for anything beyond byte transfer; STATUS is read-only today.
