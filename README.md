@@ -1,45 +1,80 @@
 # BeanPort
 
-Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentially other 8-bit retro homebrew computers — a flexible and low-cost alternative to the FTDI UM245R USB-to-parallel-FIFO module.
+Raspberry Pi Pico firmware providing a USB terminal bridge for Z80, and potentially other 8-bit retro homebrew computers — a flexible, low-cost alternative to the FTDI UM245R USB-to-parallel-FIFO module.
+
+The Pico presents a native address-mapped interface to the target system's bus, and a standard USB CDC serial port (driverless on macOS, Linux, and Windows) to the host. Bytes flow transparently in both directions.
+
+## How it works
+
+Two 8-bit registers, selected by a single address line (A0) as presented to the Pico:
+
+| A0 | Name   | Access     | Meaning                                                                                    |
+|----|--------|------------|--------------------------------------------------------------------------------------------|
+| 0  | STATUS | Read-only  | bit 0 = read-available, bit 1 = write-ready (matches the 6850 ACIA's RDRF/TDRE convention) |
+| 1  | DATA   | Read/write | write = byte to send to the host; read = byte received from the host                       |
+
+"Read" and "write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. A dedicated external decoder (qualified by the target's I/O strobe) selects this register pair. The Pico never has to gate its own bus access — a firmware bug can't cause output-driver contention.
+
+### Signal path
+
+A byte crosses through the same stages regardless of direction, just in reverse:
+
+**Target → host** (target writes to DATA):
+
+1. Target asserts the write strobe, drives the data bus
+2. An external address decoder selects BeanPort's register pair, gating EN# and passing A0 through unchanged as the register-select line
+3. 74LVC245 level shifters (5V → 3.3V) relay the data bus and control signals to the Pico
+4. A PIO (Programmable I/O) state machine samples the data bus the instant the EN# strobe is recognized — PIO cycle-accurate, no ARM core involved
+5. The byte lands in the PIO's own hardware FIFO
+6. A dedicated core (core 1) drains that FIFO and hands the byte to the other core over the RP2040's inter-core FIFO
+7. The other core (core 0) drains that and hands the byte to TinyUSB, which buffers and sends it over USB CDC
+
+**Host → target** (target reads from DATA): the same stages, in reverse — USB CDC in, core 0, inter-core FIFO, core 1, PIO FIFO, driven onto the data bus for the target's read strobe.
+
+Three buffers sit in that path, each doing a distinct job:
+
+| Buffer                   | Depth                                         | Role                                                                                                                                                                                                                                                                                                                     |
+|--------------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PIO state machine FIFO   | 4 words each direction                        | This is the communication channel between the PIO state machine and the ARM cores, its depth absorbs the gap between a bus cycle's fixed timing and the next time a core happens to service it |
+| Inter-core FIFO          | 8 entries each direction (RP2040), 4 (RP2350) | Hands bytes between the two Pico ARM cores without either one blocking on the other                                                                                                                                                                                                                                               |
+| USB CDC buffer (TinyUSB) | 64 bytes each direction                       | Matches bytes up with USB's own packet-based transfer rhythm                                                                                                                                                                                                                                                             |
+
+None of these are managed by BeanPort's own code — it's two small polling loops moving bytes between fixed-size buffers that already exist in either the PIO hardware or the SDK's own USB stack.
+
+### Why two cores
+
+USB CDC handling runs on core 0; the bus-facing loop (steps 5-6 above, reversed for reads) runs alone on core 1. Separating this from the bus-facing loop means its timing never depends on what the USB stack happens to be doing at any given moment.  A shared-core version of this loop occasionally duplicated a byte under a fast, unpaced round-trip burst. Splitting the two loops onto separate cores removed that dependency entirely.
+
+STATUS's two bits are passed to the PIO by setting GPIOs which can be read by the PIO. They are refreshed by core 1 every loop iteration directly by checking the PIO FIFOs' occupancy. This method was confirmed safe for the target under sustained unpaced bursts even with that loop deliberately slowed down for testing — a wedged state machine stops responding rather than answering with stale data.
 
 ## Status
 
-Prototyping stage. The native interface — STATUS and DATA ports distinguished by address line A0 — is implemented and proven end-to-end on Z80 hardware: a PIO state machine on the Pico captures Z80 I/O writes and drives Z80 I/O reads, gated by R/W and EN# (externally derived from IORQ# and address decoding), with the STATUS byte (TX-ready/RX-available bits) reflecting live PIO FIFO occupancy. Verified as a working bidirectional terminal bridge: bytes typed in the Pico's USB terminal reach the target's console, and target keypresses reach the USB terminal, both directions live simultaneously with no pacing workarounds.
-
-Bulk transfer throughput has been measured, in both directions.
-
-Z80-to-USB: solid, ~45KB/s sustained with zero data loss across repeated runs.
-
-USB-to-Z80: reliable for normal use (typing, and a real terminal's paste of a file - tested clean at 1KB) but not for a raw, unthrottled burst write from a naive client (on the USB host).
-
-For anything sending bulk data programmatically: pace writes in small chunks with a short delay between them rather than sending the whole payload in one call.
-
-I am considering a dedicated bulk-transfer mode with real handshaking (the Z80 acknowledging each chunk, which is propagated back to the sender, so the sender doesn't need to guess a safe delay).
-
-The firmware runs USB CDC handling and the bus-facing loop on separate RP2040 cores, communicating via the inter-core FIFO. This keeps the bus-facing loop's timing free of any USB stack interrupt work, and was confirmed on real hardware to fix a rare byte-duplication issue under a fast, unpaced round-trip burst. Both STATUS bits are simple GPIO mirrors refreshed by that loop, confirmed safe under sustained unpaced bursts even with the loop deliberately slowed down for testing.
-
-## Overview
-
-The Pico acts as a transparent byte pipe between a host terminal (via USB CDC — driverless on macOS, Linux, and Windows) and an 8-bit system's bus. Primary target: a native interface (STATUS/DATA ports) for the BeanZee/BeanDeck homebrew computer.
-
-STATUS is designed to double as a simple command channel for anything beyond byte transfer (e.g. a future Wi-Fi config path) rather than adding more address-decoded ports — not yet implemented; STATUS is read-only today.
-
-## Possible Future Development
-
-- **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket
-- **Wi-Fi console** — on Pico W / Pico 2 W hardware
-- **RC2014 bus card** — packaging as a card for the RC2014 backplane
-- **Dedicated bulk-transfer mode** — chunk+ACK handshaking for a future CLI/GUI host client, more robust than the fixed-delay pacing described above
-
-A UART (TX/RX, optional CTS/RTS) passthrough mode may also be worth adding, which wouldn't be justified on its own: USB-UART adapters are cheap and plentiful. It may instead be more valuable as a way to give BeanZee its own UART alongside USB (it doesn't have one).
+Measured throughput: 10MHz Z80 target to host is solid at ~45KB/s sustained with zero data loss. Host-to-target is reliable for normal operation - using a terminal emulator for typing and pasting text file content, but a raw, unthrottled burst write from a naive client needs pacing (small chunks, a short delay between them). 
 
 ## Hardware
 
-- Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants for the future Wi-Fi option
-- SN74LVC245A octal buffer/level shifter (5V Z80 bus <-> 3.3V Pico) - one for data, one for control/address signals
-- 74LS138 3-to-8 line decoder, for Z80 port-bank address decoding
+Built for Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants. Tested only with RP2040, non-wireless.
 
-Breadboard schematic (KiCad): [kicad/beanport.pdf](kicad/beanport.pdf)
+Example schematic (KiCad): [kicad/beanport.pdf](kicad/beanport.pdf)
+
+## Building and flashing
+
+Firmware can be built from source - see Pico documentation for build toolchain.
+
+Each board gets its own build directory  e.g. `build/pico2_w/`
+
+Binary location: `build/<target>/bin/beanport.uf2`
+
+uft files can be transferred to Pico with standard BOOTSEL.
+
+## Possible future development
+
+- **STATUS/CONFIG** STATUS is designed to double as a simple command channel for anything beyond byte transfer; STATUS is read-only today.
+- **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket. UM245R access is strobed differently, so this would need more thanb one PIO program and therefore its own firmware variant
+- **Wi-Fi console** — using Pico W / Pico 2 W hardware
+- **RC2014 bus card** — packaging as a card for the RC2014 backplane
+- **Dedicated bulk-transfer mode** — chunk+ACK handshaking for a future CLI/GUI host client, more robust than fixed-delay pacing
+- **UART passthrough** — would give the target an UART alongside USB
 
 ## License
 
