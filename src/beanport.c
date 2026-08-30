@@ -1,12 +1,17 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
+#include "pico/time.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 
 #include "beanport.pio.h"
 
 #define PIO_BASE_PIN 0
+
+#ifndef PUSH_DELAY_US
+#define PUSH_DELAY_US 0
+#endif
 
 #define READ_AVAILABLE_PIN 11
 #define WRITE_READY_PIN 12
@@ -19,6 +24,8 @@ static uint sm;
 // USB processing / interrupts don't disturb PIO/bus operations
 
 static void core1_main() {
+    absolute_time_t next_push_time = get_absolute_time();
+
     while (true) {
 
         // status pins to the outside world, and also read by the PIO SM
@@ -29,14 +36,21 @@ static void core1_main() {
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
             uint32_t rx_frame = pio_sm_get(pio, sm);
             // doesn't block: wready checked
-            multicore_fifo_push_blocking(rx_frame); 
+            multicore_fifo_push_blocking(rx_frame);
         }
 
         // core0 (USB) -> pio
-        if (multicore_fifo_rvalid() && !pio_sm_is_tx_fifo_full(pio, sm)) {
+        // PUSH_DELAY_US (0 = stock/unthrottled) rate-limits how often this
+        // branch is allowed to push, without blocking - so the pio->core0
+        // branch above is still serviced every iteration even while gated.
+        if (multicore_fifo_rvalid() && !pio_sm_is_tx_fifo_full(pio, sm)
+            && (PUSH_DELAY_US == 0 || time_reached(next_push_time))) {
             // doesn't block: rvalid checked
-            uint32_t word = multicore_fifo_pop_blocking(); 
+            uint32_t word = multicore_fifo_pop_blocking();
             pio_sm_put(pio, sm, word);
+#if PUSH_DELAY_US > 0
+            next_push_time = make_timeout_time_us(PUSH_DELAY_US);
+#endif
         }
     }
 }
