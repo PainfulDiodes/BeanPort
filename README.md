@@ -65,16 +65,16 @@ Each board gets its own build directory  e.g. `build/pico2_w/`
 
 Binary location: `build/<target>/bin/beanport.uf2`
 
-uft files can be transferred to Pico with standard BOOTSEL.
+uf2 files can be transferred to Pico with standard BOOTSEL.
 
 ## Possible future development
 
 - **STATUS/CONFIG** STATUS is designed to double as a simple command channel for anything beyond byte transfer; STATUS is read-only today.
-- **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket. UM245R access is strobed differently, so this would need more thanb one PIO program and therefore its own firmware variant
+- **UM245R-compatible mode** — a drop-in replacement for boards built around the UM245R socket. UM245R's RD#/WR# are independent, asynchronous strobes rather than one shared enable line, so this would need 2 PIO state machines running a different PIO program
 - **Wi-Fi console** — using Pico W / Pico 2 W hardware
 - **RC2014 bus card** — packaging as a card for the RC2014 backplane
 - **Dedicated bulk-transfer mode** — chunk+ACK handshaking for a future CLI/GUI host client, more robust than fixed-delay pacing
-- **UART passthrough** — would give the target an UART alongside USB
+- **UART passthrough** — would give the target a UART alongside USB
 
 ## License
 
