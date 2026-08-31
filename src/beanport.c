@@ -33,9 +33,11 @@ static void core1_main() {
         }
 
         // core0 (USB) -> pio
-        if (multicore_fifo_rvalid() && !pio_sm_is_tx_fifo_full(pio, sm)) {
+        // Only push once the tx fifo is fully drained - never lets more than 
+        // one word of backlog build up in PIO tx fifo
+        if (multicore_fifo_rvalid() && pio_sm_is_tx_fifo_empty(pio, sm)) {
             // doesn't block: rvalid checked
-            uint32_t word = multicore_fifo_pop_blocking(); 
+            uint32_t word = multicore_fifo_pop_blocking();
             pio_sm_put(pio, sm, word);
         }
     }
