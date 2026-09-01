@@ -8,8 +8,8 @@
 ; GP9    = EN#
 ; GP10   = A0 - 0 = STATUS/CONFIG, 1 = DATA
 ; GP11   = READ_AVAILABLE_PIN - a byte is waiting in the TX-FIFO for the bus to receive
-; GP12   = WRITE_READY_PIN - the RX-FIFO has room for the bus to send another byte
-;          Both mirror pins are refreshed once per core-1 loop iteration
+; GP12   = WRITE_READY_PIN - the RX-FIFO is ready for the bus to send another byte
+;          Both mirror pins are refreshed once per core1 loop iteration
 
 .program beanport
 

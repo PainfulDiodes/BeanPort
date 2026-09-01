@@ -23,7 +23,7 @@ static void core1_main() {
 
         // status pins to the outside world, and also read by the PIO SM
         gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
-        gpio_put(WRITE_READY_PIN, !pio_sm_is_rx_fifo_full(pio, sm));
+        gpio_put(WRITE_READY_PIN, pio_sm_is_rx_fifo_empty(pio, sm));
 
         // pio -> core0 (USB)
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
