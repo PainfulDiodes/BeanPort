@@ -13,7 +13,7 @@ Two 8-bit registers, selected by a single address line (A0) as presented to the 
 | 0  | STATUS | Read-only  | bit 0 = read-available, bit 1 = write-ready (matches the 6850 ACIA's RDRF/TDRE convention) |
 | 1  | DATA   | Read/write | write = byte to send to the host; read = byte received from the host                       |
 
-"Read" and "write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. A dedicated external decoder (qualified by the target's I/O strobe) selects this register pair. The Pico never has to gate its own bus access — a firmware bug can't cause output-driver contention.
+"Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. A dedicated external decoder (qualified by the target's I/O strobe) selects this register pair. The target should gate its own bus. 
 
 ### Signal path
 
@@ -21,37 +21,37 @@ A byte crosses through the same stages regardless of direction, just in reverse:
 
 **Target → host** (target writes to DATA):
 
-1. Target asserts the write strobe, drives the data bus
-2. An external address decoder selects BeanPort's register pair, gating EN# and passing A0 through unchanged as the register-select line
-3. 74LVC245 level shifters (5V → 3.3V) relay the data bus and control signals to the Pico
-4. A PIO (Programmable I/O) state machine samples the data bus the instant the EN# strobe is recognized — PIO cycle-accurate, no ARM core involved
-5. The byte lands in the PIO's own hardware FIFO
-6. A dedicated core (core 1) drains that FIFO and hands the byte to the other core over the RP2040's inter-core FIFO
-7. The other core (core 0) drains that and hands the byte to TinyUSB, which buffers and sends it over USB CDC
+1. Target asserts write, drives the data bus
+2. An address decoder / logic selects BeanPort's register pair producing an EN# signal and passes A0 through unchanged as the register-select line
+3. Level shifters (5V → 3.3V, e.g. 74LVC245), relay the data bus and control signals to the Pico
+4. A Pico PIO (Programmable I/O) state machine samples the data bus the instant the EN# is asserted
+5. The byte is pushed to the PIO's own hardware FIFO
+6. A dedicated Pico ARM core drains that FIFO and hands the byte to the other core over the RP2040's inter-core FIFO
+7. The other core drains that and hands the byte to TinyUSB, which buffers and sends it over USB CDC
 
-**Host → target** (target reads from DATA): the same stages, in reverse — USB CDC in, core 0, inter-core FIFO, core 1, PIO FIFO, driven onto the data bus for the target's read strobe.
+**Host → target** (target reads from DATA): the same stages, in reverse — USB CDC in, core 0, inter-core FIFO, core 1, PIO FIFO, driven onto the data bus within the target's read cycle.
 
 Three buffers sit in that path, each doing a distinct job:
 
 | Buffer                   | Depth                                         | Role                                                                                                                                                                                                                                                                                                                     |
 |--------------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| PIO state machine FIFO   | 4 words each direction                        | This is the communication channel between the PIO state machine and the ARM cores, its depth absorbs the gap between a bus cycle's fixed timing and the next time a core happens to service it |
-| Inter-core FIFO          | 8 entries each direction (RP2040), 4 (RP2350) | Hands bytes between the two Pico ARM cores without either one blocking on the other                                                                                                                                                                                                                                               |
-| USB CDC buffer (TinyUSB) | 64 bytes each direction                       | Matches bytes up with USB's own packet-based transfer rhythm                                                                                                                                                                                                                                                             |
-
-None of these are managed by BeanPort's own code — it's two small polling loops moving bytes between fixed-size buffers that already exist in either the PIO hardware or the SDK's own USB stack.
+| PIO state machine FIFO   | 1 word each direction                         | This is the communication channel between the PIO state machine and the ARM cores; its depth is pinned to <=1. It allows the interactions with the target to be triggered by a target signal edge - rather than the processing loop in the ARM core, which may not loop round in time to handle the target's write cycle |
+| Inter-core FIFO          | 8 entries each direction (RP2040), 4 (RP2350) | Hands bytes between the two Pico ARM cores without either one blocking on the other                                                                                                                                                                                                                                      |
+| USB CDC buffer (TinyUSB) | 64 bytes each direction                       | Matches bytes up with USB's own packet-based transfer rhythm - which may have interrupts                                                                                                                                                                                                                                 |
 
 ### Why two cores
 
-USB CDC handling runs on core 0; the bus-facing loop (steps 5-6 above, reversed for reads) runs alone on core 1. Separating this from the bus-facing loop means its timing never depends on what the USB stack happens to be doing at any given moment.  A shared-core version of this loop occasionally duplicated a byte under a fast, unpaced round-trip burst. Splitting the two loops onto separate cores removed that dependency entirely.
+USB CDC handling runs on core 0; the bus-facing loop runs alone on core 1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment.  A shared-core version of this loop occasionally duplicated a byte under a fast, unpaced round-trip burst. Splitting the two loops onto separate cores removed that dependency entirely.
 
-STATUS's two bits are passed to the PIO by setting GPIOs which can be read by the PIO. They are refreshed by core 1 every loop iteration directly by checking the PIO FIFOs' occupancy. This method was confirmed safe for the target under sustained unpaced bursts even with that loop deliberately slowed down for testing — a wedged state machine stops responding rather than answering with stale data.
+STATUS's two bits are passed to the PIO by setting GPIOs which can be read by the PIO. They are refreshed by core 1 every loop iteration directly by checking the PIO FIFOs' occupancy. This method was confirmed safe for the target under sustained unpaced bursts even with that loop deliberately slowed down for testing — a wedged state machine stops responding rather than answering with stale data - which to the target looks like not ready to write, or no data to read.
 
 ## Status
 
 Measured throughput: 10MHz Z80 target to host is solid at ~45KB/s sustained with zero data loss.
 
 Host-to-target is reliable, tested with both terminal emulator and a Python source sending a raw, unthrottled burst write, without chunking or pacing.
+
+A test to `cat` a file to the virtual serial port `/dev/cu.usb...` fails - I have not attempted to determine why other than to note that small packets of 32 bytes succeed, packets of 64 bytes or more fail. However, as per the previous note, scripted binary transmission from Python succeeds with larger files.
 
 ## Hardware
 
@@ -69,7 +69,7 @@ Binary location: `build/<target>/bin/beanport.uf2`
 
 uf2 files can be transferred to Pico with standard BOOTSEL.
 
-> **Note:** `picotool load -f` can trigger BOOTSEL remotely instead (see `scripts/deploy.sh`), but only once BeanPort (or any other firmware with `pico_stdio_usb`/TinyUSB running) is already on the board - a first flash, or recovering from non-USB firmware, still needs manual BOOTSEL.
+**Note:** `picotool load -f` can trigger BOOTSEL remotely instead (see `scripts/deploy.sh`), but only once BeanPort (or any other firmware with `pico_stdio_usb`/TinyUSB running) is already on the board - a first flash, or recovering from non-USB firmware, still needs manual BOOTSEL.
 
 ## Possible future development
 
