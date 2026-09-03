@@ -3080,7 +3080,7 @@
 		)
 		(uuid "5a8d6d87-7965-4280-bf81-d263060e0881")
 	)
-	(label "A0 3v3"
+	(label "RS(A0) 3v3"
 		(at 114.3 64.77 0)
 		(effects
 			(font

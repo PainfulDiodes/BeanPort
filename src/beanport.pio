@@ -4,9 +4,9 @@
 ; drives D0-D7 on bus read cycles
 ;
 ; GP0-7  = D0-D7
-; GP8    = R/W - HIGH = write (jmp pin)
+; GP8    = R/W : HIGH = write (jmp pin)
 ; GP9    = EN#
-; GP10   = A0 - 0 = STATUS/CONFIG, 1 = DATA
+; GP10   = RS(A0) : 0 = STATUS/CONFIG, 1 = DATA
 ; GP11   = READ_AVAILABLE_PIN - a byte is waiting in the TX-FIFO for the bus to receive
 ; GP12   = WRITE_READY_PIN - the RX-FIFO is ready for the bus to send another byte
 ;          Both mirror pins are refreshed once per core1 loop iteration
@@ -24,9 +24,9 @@ bus_read:
     mov osr, !null        ; all 1s
     out pindirs, 8        ; Set D0-D7 as outputs (set pindirs only sets 5 bits)
     mov osr, pins         ; snapshot of GP0-31
-    out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#) - bit 0 is now A0
-    out y, 1              ; isolate bit 0 (A0) into y - y is replaced by value of single bit
-    jmp !y read_status    ; A0=0 -> STATUS
+    out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#) - bit 0 is now RS(A0)
+    out y, 1              ; isolate bit 0 (RS) into y - y is replaced by value of single bit
+    jmp !y read_status    ; RS(A0)=0 -> STATUS
 read_data:
     pull noblock          ; byte from FIFO - x (cache) is substituted if FIFO is empty
     mov x, osr            ; re-cache it
@@ -35,7 +35,7 @@ read_data:
 read_status:
     mov isr, null         ; clear ISR
     mov osr, pins         ; load osr with pin snapshot
-    out null, 11          ; shift right - discard bits 0-10 (D0-D7, R/W, EN#, A0)
+    out null, 11          ; shift right - discard bits 0-10 (D0-D7, R/W, EN#, RS)
                           ; bit 0 now = GP11 (read-available), bit 1 = GP12 (write-ready) -
                           ; both mirror pins are set by the core-1 loop
     out y, 2              ; y = both mirror bits together, in one shot 
