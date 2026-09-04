@@ -18,7 +18,8 @@ static uint sm;
 // core 1: PIO loop
 // USB processing / interrupts don't disturb PIO/bus operations
 
-static void core1_main() {
+// core1_main() pinned into RAM - not just a flash function that happens to be cache-resident
+static void __not_in_flash_func(core1_main)() {
     while (true) {
 
         // status pins to the outside world, and also read by the PIO SM
@@ -29,15 +30,17 @@ static void core1_main() {
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
             uint32_t rx_frame = pio_sm_get(pio, sm);
             // doesn't block: wready checked
-            multicore_fifo_push_blocking(rx_frame); 
+            // _inline variant rather than a flash-resident call
+            multicore_fifo_push_blocking_inline(rx_frame);
         }
 
         // core0 (USB) -> pio
-        // Only push once the tx fifo is fully drained - never lets more than 
+        // Only push once the tx fifo is fully drained - never lets more than
         // one word of backlog build up in PIO tx fifo
         if (multicore_fifo_rvalid() && pio_sm_is_tx_fifo_empty(pio, sm)) {
             // doesn't block: rvalid checked
-            uint32_t word = multicore_fifo_pop_blocking();
+            // _inline variant rather than a flash-resident call
+            uint32_t word = multicore_fifo_pop_blocking_inline();
             pio_sm_put(pio, sm, word);
         }
     }
