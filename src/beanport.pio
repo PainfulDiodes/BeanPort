@@ -19,14 +19,14 @@ set x, 0                  ; data cache
 .wrap_target
 start:
     wait 0 gpio 9         ; Wait for EN# to be asserted (low)
-    jmp pin bus_write     ; R/W (jmp pin) high = write, low = read
-bus_read:
+    jmp pin write     ; R/W (jmp pin) high = write, low = read
+read:
     mov osr, !null        ; all 1s
     out pindirs, 8        ; Set D0-D7 as outputs (set pindirs only sets 5 bits)
     mov osr, pins         ; snapshot of GP0-31
     out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#) - bit 0 is now RS(A0)
     out y, 1              ; isolate bit 0 (RS) into y - y is replaced by value of single bit
-    jmp !y read_status    ; RS(A0)=0 -> STATUS
+    jmp !y read_status    ; RS(A0)=0 == STATUS
 read_data:
     pull noblock          ; byte from FIFO - x (cache) is substituted if FIFO is empty
     mov x, osr            ; re-cache it
@@ -48,13 +48,14 @@ read_done:
     mov osr, null         ; all 0s
     out pindirs, 8        ; Set D0-D7 as inputs (set pindirs only sets 5 bits)
     jmp start
-bus_write:
+write:
     ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), estimated to be
-    ; half a 10MHz Z80 T-state. 
+    ; half a 10MHz Z80 T-state.
     ; TODO: further analysis is required
     nop [6]
+    mov isr, null         ; clean ISR regardless of previous push noblock's outcome
     in pins, 8            ; sample D0-D7
-    push                  ; > RX FIFO
+    push noblock          ; => RX FIFO if room; silently dropped if full 
     wait 1 gpio 9         ; wait for EN# to deassert
     jmp start
 .wrap
