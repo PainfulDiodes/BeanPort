@@ -34,6 +34,11 @@ static void __not_in_flash_func(core1_main)() {
             multicore_fifo_push_blocking_inline(rx_frame);
         }
 
+        // Additional mid-loop status refresh reduces the time between refreshes 
+        // and so reduces "staleness" of the status
+        gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
+        gpio_put(WRITE_READY_PIN, pio_sm_is_rx_fifo_empty(pio, sm));
+
         // core0 (USB) -> pio
         // Only push once the tx fifo is fully drained - never lets more than
         // one word of backlog build up in PIO tx fifo
