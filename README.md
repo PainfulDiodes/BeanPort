@@ -15,6 +15,8 @@ Two 8-bit registers, selected by a single address line (A0) as presented to the 
 
 "Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. A dedicated external decoder (qualified by the target's I/O strobe) selects this register pair. The target should gate its own bus. 
 
+Reading DATA with nothing available returns `0x00` rather than repeating the last byte received — a target that skips checking read-available entirely may treat `0x00` as "nothing more to read" instead of silently re-reading stale data (although of course `0x00` may be a genuine byte of data in the stream).
+
 ### Signal path
 
 A byte crosses through the same stages regardless of direction, just in reverse:
@@ -47,11 +49,13 @@ STATUS's two bits are passed to the PIO by setting GPIOs which can be read by th
 
 ## Status
 
-Measured throughput: 10MHz Z80 target to host is solid at ~45KB/s sustained with zero data loss.
+Measured throughput: 10MHz Z80 target to Macbook USB host is solid at ~45KB/s sustained with zero data loss, using the target's own write-ready status check to pace each byte.
+
+With no flow control at all - the target ignoring STATUS entirely and writing as fast as it can execute instructions - the maximum rate before the receive FIFO overruns is close to 60KB/s. A target that never checks status (e.g. a bare-minimum debug dump) needs to stay under that ceiling to avoid losing data.
 
 Host-to-target is reliable, tested with both terminal emulator and a Python source sending a raw, unthrottled burst write, without chunking or pacing.
 
-A test to `cat` a file to the virtual serial port `/dev/cu.usb...` fails - I have not attempted to determine why other than to note that small packets of 32 bytes succeed, packets of 64 bytes or more fail. However, as per the previous note, scripted binary transmission from Python succeeds with larger files.
+A `cat`-to-serial-port test previously appeared to fail at packet sizes over 32 bytes. Appears to be a host-side artifact specific to `cat`'s own write pattern at 64-byte USB packet boundaries - a terminal emulator and a Python script's own unthrottled write both transfer arbitrarily large files without issue.
 
 ## Hardware
 
