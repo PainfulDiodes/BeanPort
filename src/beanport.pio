@@ -7,9 +7,9 @@
 ; GP8    = R/W : HIGH = write (jmp pin)
 ; GP9    = EN#
 ; GP10   = RS(A0) : 0 = STATUS/CONFIG, 1 = DATA
-; GP11   = READ_AVAILABLE_PIN - a byte is waiting in the TX-FIFO for the bus to receive
-; GP12   = WRITE_READY_PIN - the RX-FIFO is ready for the bus to send another byte
-;          Both mirror pins are refreshed once per core1 loop iteration
+; GP11   = WRITE_READY_PIN - the RX-FIFO is ready for the bus to send another byte.
+;          Refreshed by core1 on each loop iteration. This may allow the status to be 
+;          stale, but the FIFO can absorb an additional couple of writes
 
 .program beanport
 
@@ -33,14 +33,13 @@ read_data:
     out pins, 8           ; output the byte onto D0-D7
     jmp read_done
 read_status:
-    mov isr, null         ; clear ISR
+    mov isr, null         ; clear ISR (where the status byte is assembled)
     mov osr, pins         ; load osr with pin snapshot
-    out null, 11          ; shift right - discard bits 0-10 (D0-D7, R/W, EN#, RS)
-                          ; bit 0 now = GP11 (read-available), bit 1 = GP12 (write-ready) -
-                          ; both mirror pins are set by the core-1 loop
-    out y, 2              ; y = both mirror bits together, in one shot 
-    in y, 2               ; insert both into the ISR: bit 0 = read-available, bit 1 = write-ready
-                          ; matching the 6850 ACIA convention
+    out null, 11          ; discard bits 0-10 (D0-D7, R/W, EN#, RS) - bit 0 now = GP11 (write-ready)
+    out y, 1              ; write-ready bit into y
+    in y, 1               ; shift write-ready bit into ISR - bit 0
+    mov y, !status        ; read-available bit into y (inverted as the sense is "TX FIFO is empty")
+    in y, 1               ; shift read-available bit into ISR - bit 0, write-ready shifted to bit 1
     mov osr, isr          ; move the assembled status byte into osr
     out pins, 8           ; output the status byte
 read_done:
@@ -68,6 +67,9 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     sm_config_set_in_pins(&c, base_pin);
     sm_config_set_out_pins(&c, base_pin, 8); 
     sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
+ 
+    // produces "TX FIFO is empty" - which is inverted in the PIO for read-available status
+    sm_config_set_mov_status(&c, STATUS_TX_LESSTHAN, 1);
 
     // D0-D7 as inputs; only the data pins will be function selected for the PIO
     // PIO only reads address and control lines, so we do not initialise them here

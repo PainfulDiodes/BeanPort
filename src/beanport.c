@@ -8,8 +8,8 @@
 
 #define PIO_BASE_PIN 0
 
-#define READ_AVAILABLE_PIN 11
-#define WRITE_READY_PIN 12
+// read-available status is read via this SM's own `mov status`
+#define WRITE_READY_PIN 11
 
 static PIO pio;
 static uint sm;
@@ -22,8 +22,6 @@ static uint sm;
 static void __not_in_flash_func(core1_main)() {
     while (true) {
 
-        // status pins to the outside world, and also read by the PIO SM
-        gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
         gpio_put(WRITE_READY_PIN, pio_sm_is_rx_fifo_empty(pio, sm));
 
         // pio -> core0 (USB)
@@ -34,9 +32,7 @@ static void __not_in_flash_func(core1_main)() {
             multicore_fifo_push_blocking_inline(rx_frame);
         }
 
-        // Additional mid-loop status refresh reduces the time between refreshes 
-        // and so reduces "staleness" of the status
-        gpio_put(READ_AVAILABLE_PIN, !pio_sm_is_tx_fifo_empty(pio, sm));
+        // Additional mid-loop status refresh reduces the time between refreshes
         gpio_put(WRITE_READY_PIN, pio_sm_is_rx_fifo_empty(pio, sm));
 
         // core0 (USB) -> pio
@@ -60,8 +56,6 @@ int main() {
     sm = pio_claim_unused_sm(pio, true);
     beanport_program_init(pio, sm, offset, PIO_BASE_PIN);
 
-    gpio_init(READ_AVAILABLE_PIN);
-    gpio_set_dir(READ_AVAILABLE_PIN, GPIO_OUT);
     gpio_init(WRITE_READY_PIN);
     gpio_set_dir(WRITE_READY_PIN, GPIO_OUT);
 
