@@ -14,7 +14,7 @@
 .program beanport
 
 ; initialise
-set x, 0                  ; data cache
+set x, 0                  ; permanently 0 - read_data's empty-FIFO fallback
 
 .wrap_target
 start:
@@ -28,8 +28,7 @@ read:
     out y, 1              ; isolate bit 0 (RS) into y - y is replaced by value of single bit
     jmp !y read_status    ; RS(A0)=0 == STATUS
 read_data:
-    pull noblock          ; byte from FIFO - x (cache) is substituted if FIFO is empty
-    mov x, osr            ; re-cache it
+    pull noblock          ; byte from FIFO - x (always 0) is substituted if FIFO is empty
     out pins, 8           ; output the byte onto D0-D7
     jmp read_done
 read_status:
