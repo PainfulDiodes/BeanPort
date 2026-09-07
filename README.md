@@ -6,13 +6,13 @@ Most homebrew retrocomputing designs will provide a UART interface and use an FT
 
 BeanPort provides an alternative solution: a Pico replaces the UART on the target system, and provides the USB connection to a host computer. This removes the need to consider baud rates, allowing the CPU clock to be set independently, and provides faster transmission speeds.
 
-This approach is not new: the FTDI UM245R USB-to-parallel-FIFO module provides the same function, but is not as easy to obtain as a Pico, and has a higher cost.
+This approach is not new: the FTDI UM245R USB-to-parallel-FIFO module provides the same function, but is not as easy to obtain as a Pico, and has a higher cost. The Pico could also potentially provide WiFi connectivity.
 
 The Pico presents a native address-mapped interface to the target system's bus, and a standard USB CDC serial port (driverless on macOS, Linux, and Windows) to the host. Bytes flow transparently, with buffering in both directions, and provide the means to run a virtual terminal to the retrocomputer on the host system.
 
 ## How it works
 
-The Pico provides two 8-bit registers, distinguished by a Register Select (RS) input, which will typically be mapped to the target's A0:
+BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) input, which will typically be mapped to the target's A0:
 
 | RS/A0 | Name   | Access     | Meaning                                                                                    |
 |-------|--------|------------|--------------------------------------------------------------------------------------------|
@@ -25,7 +25,7 @@ Reading DATA when none is available returns `0x00`.
 
 ### Signal path
 
-A byte crosses through the several stages (in both directions):
+A byte crosses through the several stages:
 
 **Target → host**
 
