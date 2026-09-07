@@ -49,7 +49,7 @@ A byte crosses through the several stages:
 8. The PIO drives the data bus with the pulled byte
 9. The data level shifter (3.3V → 5V), relays the data signals to the target system
 
-The host steps (1-3) and the target steps (4-9) operate independently of each other. The host will be told whether it can send more data. The target will be told through the status register when there is data to read, or when it can send more data:
+The host-driven steps (1-3) and the target-driven steps (4-9) operate independently of each other. The Pico's USB system will manage flow control with the host. The target will be told through the status register when there is data to read, or when it can send more data:
 
 **Status → target**
 
@@ -62,7 +62,7 @@ The host steps (1-3) and the target steps (4-9) operate independently of each ot
 
 ### Why two cores
 
-USB CDC handling runs on core0; the bus-facing loop runs alone on core1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment.  A shared-core version of this loop occasionally duplicated a byte within a fast burst. Splitting the two loops onto separate cores smoothes this out.
+USB CDC handling runs on core0; the bus-facing loop runs alone on core1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment.  A single-core version of this with a single loop occasionally duplicated a byte within a fast burst. Splitting the two loops onto separate cores smoothes this out.
 
 ### Target status register
 
@@ -70,13 +70,13 @@ The PIO takes the read-available signal directly from the status of the PIO FIFO
 
 The PIO cannot check the status of PIO FIFOs in both directions at the same time, so as read-available status is determined from the FIFO it cannot determine write-ready in the same way. So instead the write-ready signal is determined by the core1 program and set on an additional GPIO pin. The PIO reads the write-ready status from this pin.
 
-This does mean that write-ready status may me stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set slightly after the FIFO's state changes.
+This does mean that write-ready status may me stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
 
-When the status changes from not-ready to ready this is inherently safe - occasionally resulting in a tiny delay as the "ready" signal happens slightly late. If on the other hand the status changes from ready to not-ready, the PIO FIFO can absorb an additional tarteg write resulting from this latency - so that no data is lost.
+When the status changes from not-ready to ready this is inherently safe - occasionally resulting in a tiny delay as the "ready" signal happens slightly late. If on the other hand the status changes from ready to not-ready, the target may send data thinking that the BeanPort is ready. In this case the PIO FIFO is able to absorb an additional target write so that no data is lost.
 
 ## Status
 
-Measured throughput: 10MHz Z80 target to Macbook USB host is solid at ~45KB/s sustained with zero data loss, using the target's own write-ready status check to pace each byte.
+Measured throughput: 10MHz Z80 target to Macbook USB host is solid at ~45KB/s sustained with zero data loss, using the target's  write-ready status check between each byte.
 
 With no flow control at all - the target ignoring STATUS entirely and writing as fast as it can execute instructions - the maximum rate before the receive FIFO overruns is close to 60KB/s. A target that never checks status needs to pace itself to stay under that ceiling to avoid losing data.
 
