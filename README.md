@@ -6,9 +6,9 @@ Most homebrew retrocomputing designs will provide a UART interface and use an FT
 
 BeanPort provides an alternative solution: a Pico replaces the UART on the target system, and provides the USB connection to a host computer. This removes the need to consider baud rates, allowing the CPU clock to be set independently, and provides faster transmission speeds.
 
-This approach is not new: the FTDI UM245R USB-to-parallel-FIFO module provides the same function, but is not as easy to obtain as a Pico, and has a higher cost. The Pico could also potentially provide WiFi connectivity.
+This approach is not new: the FTDI UM245R USB-to-parallel-FIFO module provides the same function, but is not as easy to obtain as a Pico, and has a higher cost. The Pico could also potentially provide Wi-Fi connectivity.
 
-The Pico presents a native address-mapped interface to the target system's bus, and a standard USB CDC serial port (driverless on macOS, Linux, and Windows) to the host. Bytes flow transparently, with buffering in both directions, and provide the means to run a virtual terminal to the retrocomputer on the host system.
+The Pico presents a native address-mapped interface to the target system's bus, and a standard USB CDC serial port (driverless on macOS, Linux, and Windows) to the host. Bytes flow transparently with buffering in both directions — able to run a virtual terminal to the retrocomputer from the host system.
 
 ## How it works
 
@@ -19,18 +19,18 @@ BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) i
 | 0     | STATUS | read-only  | bit 0 = read-available, bit 1 = write-ready (matches the 6850 ACIA's RDRF/TDRE convention) |
 | 1     | DATA   | read/write | write = byte to send to the host; read = byte received from the host                       |
 
-"Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. The decoder / glue logic provides enable (EN#) and R/W signals. For a Z80 system, RD# would be mapped to R/W.
+"Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. The decoder / glue logic provides an enable (EN#) signal, plus whatever logic the target's own bus needs to produce R/W. For a Z80 target: RD# maps directly to R/W.
 
 Reading DATA when none is available returns `0x00`.
 
 ### Signal path
 
-A byte crosses through the several stages:
+A byte crosses through several stages:
 
 **Target → host**
 
 1. Target asserts write, drives the data bus
-2. An address decoder / glue logic selects BeanPort's register pair producing an EN# signal, a R/[W] signal, and passes A0 straight through as register-select (RS)
+2. An address decoder / glue logic selects BeanPort's register pair producing an EN# signal, a R/W signal, and passes A0 straight through as register-select (RS)
 3. Level shifters (5V → 3.3V, e.g. 74LVC245), relay the data bus and control signals to the Pico
 4. A Pico PIO (Programmable I/O) state machine samples the data bus the instant the EN# is asserted
 5. The byte is pushed to the PIO's own hardware FIFO
@@ -43,7 +43,7 @@ A byte crosses through the several stages:
 2. Pico core0 drains the TinyUSB buffer and pushes the byte into the inter-core FIFO
 3. Pico core1 drains the inter-core FIFO and pushes the byte into the PIO FIFO
 4. The target system asserts read to the BeanPort's data address
-5. An address decoder / glue logic selects BeanPort's register pair producing an EN# signal, a [R]/W signal, and passes A0 straight through as register-select (RS)
+5. An address decoder / glue logic selects BeanPort's register pair producing an EN# signal, a R/W signal, and passes A0 straight through as register-select (RS)
 6. Level shifters (5V → 3.3V, e.g. 74LVC245), relay the control signals to the Pico, and set the direction for the data from Pico to target
 7. Once the EN# is asserted, the Pico PIO state machine pulls data from the PIO FIFO
 8. The PIO drives the data bus with the pulled byte
@@ -54,7 +54,7 @@ The host-driven steps (1-3) and the target-driven steps (4-9) operate independen
 **Status → target**
 
 1. The target system asserts read to the BeanPort's status address
-2. An address decoder / glue logic selects BeanPort's register pair producing an EN# signal, a [R]/W signal, and passes A0 straight through as register-select (RS)
+2. An address decoder / glue logic selects BeanPort's register pair producing an EN# signal, a R/W signal, and passes A0 straight through as register-select (RS)
 3. Level shifters (5V → 3.3V, e.g. 74LVC245), relay the control signals to the Pico, and set the direction for the data from Pico to target
 4. Once the EN# is asserted, the Pico PIO state machine gathers the status data
 5. The PIO drives the data bus with the status data
@@ -62,21 +62,21 @@ The host-driven steps (1-3) and the target-driven steps (4-9) operate independen
 
 ### Why two cores
 
-USB CDC handling runs on core0; the bus-facing loop runs alone on core1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment.  A single-core version of this with a single loop occasionally duplicated a byte within a fast burst. Splitting the two loops onto separate cores smoothes this out.
+USB CDC handling runs on core0; the bus-facing loop runs alone on core1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment. A single-core version of this occasionally duplicated a byte during a fast burst. Splitting the two loops onto separate cores smooths this out.
 
 ### Target status register
 
 The PIO takes the read-available signal directly from the status of the PIO FIFO. It will report "read-available" if the FIFO is not empty.
 
-The PIO cannot check the status of PIO FIFOs in both directions at the same time, so as read-available status is determined from the FIFO it cannot determine write-ready in the same way. So instead the write-ready signal is determined by the core1 program and set on an additional GPIO pin. The PIO reads the write-ready status from this pin.
+The PIO cannot check the status of PIO FIFOs in both directions at the same time. Since read-available status already uses that mechanism, write-ready has to work differently: it's determined by the core1 program instead, and set on an additional GPIO pin, which the PIO reads as its write-ready status.
 
-This does mean that write-ready status may me stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
+This does mean that write-ready status may be stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
 
-When the status changes from not-ready to ready this is inherently safe - occasionally resulting in a tiny delay as the "ready" signal happens slightly late. If on the other hand the status changes from ready to not-ready, the target may send data thinking that the BeanPort is ready. In this case the PIO FIFO is able to absorb an additional target write so that no data is lost.
+When the status changes from not-ready to ready this is inherently safe - occasionally resulting in a tiny delay as the "ready" signal happens slightly late. If on the other hand the status changes from ready to not-ready, the target may send data thinking that the BeanPort is ready. In this case the PIO FIFO is able to absorb one or two additional target writes so that no data is lost.
 
 ## Status
 
-Measured throughput: 10MHz Z80 target to Macbook USB host is solid at ~45KB/s sustained with zero data loss, using the target's  write-ready status check between each byte.
+Measured throughput: 10MHz Z80 target to MacBook USB host is solid at ~45KB/s sustained with zero data loss, using the target's write-ready status check between each byte.
 
 With no flow control at all - the target ignoring STATUS entirely and writing as fast as it can execute instructions - the maximum rate before the receive FIFO overruns is close to 60KB/s. A target that never checks status needs to pace itself to stay under that ceiling to avoid losing data.
 
@@ -86,7 +86,7 @@ A `cat` to virtual serial-port test failed at any file size over 32 bytes. Given
 
 ## Hardware
 
-Built for Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants. To date tested only with RP2040 over USB.
+Built for Raspberry Pi Pico (RP2040) or Pico 2 (RP2350), including wireless (`W`) variants. To date, only tested with a non-wireless RP2040.
 
 Example schematic (KiCad): [kicad/beanport.pdf](kicad/beanport.pdf)
 
@@ -96,7 +96,7 @@ The repo's uf2 files can be transferred to Pico with standard BOOTSEL. Binary lo
 
 Firmware can be built from source - see Pico documentation for build toolchain.
 
-Each board gets its own build directory  e.g. `build/pico2_w/`
+Each board gets its own build directory, e.g. `build/pico2_w/`
 
 ## Possible future development
 
