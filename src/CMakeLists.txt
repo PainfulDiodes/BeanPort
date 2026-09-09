@@ -1,7 +1,9 @@
 add_executable(beanport beanport.c)
 
+# pull in common dependencies
 target_link_libraries(beanport pico_stdlib pico_multicore hardware_pio)
 
+# enable usb output (TinyUSB CDC), disable uart output
 pico_enable_stdio_usb(beanport 1)
 pico_enable_stdio_uart(beanport 0)
 
@@ -20,4 +22,5 @@ pico_generate_pio_header(beanport ${CMAKE_CURRENT_LIST_DIR}/beanport.pio)
 #         target_sources(beanport PRIVATE wifi_config.c)
 #     endif()
 
+# create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(beanport)
