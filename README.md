@@ -62,27 +62,27 @@ The host-driven steps (1-3) and the target-driven steps (4-9) operate independen
 
 ### Why two cores
 
-USB CDC handling runs on core0; the bus-facing loop runs alone on core1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment. A single-core version of this occasionally duplicated a byte during a fast burst. Splitting the two loops onto separate cores smooths this out.
+USB CDC handling runs on core0; the bus-facing loop runs alone on core1. Separating the USB loop from the bus-facing loop means the bus-facing loop timing never depends on what the USB stack happens to be doing at any given moment.
 
 ### Target status register
 
 The PIO takes the read-available signal directly from the status of the PIO FIFO. It will report "read-available" if the FIFO is not empty.
 
-The PIO cannot check the status of PIO FIFOs in both directions at the same time. Since read-available status already uses that mechanism, write-ready has to work differently: it's determined by the core1 program instead, and set on an additional GPIO pin, which the PIO reads as its write-ready status.
+The PIO cannot be configured to check the status of both PIO FIFOs. Since read-available status already uses that mechanism, write-ready has to work differently: it's determined by the core1 program instead, and set on an additional GPIO pin, which the PIO reads as its write-ready status.
 
-This does mean that write-ready status may be stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
+This means that write-ready status may be stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
 
-When the status changes from not-ready to ready this is inherently safe - occasionally resulting in a tiny delay as the "ready" signal happens slightly late. If on the other hand the status changes from ready to not-ready, the target may send data thinking that the BeanPort is ready. In this case the PIO FIFO is able to absorb one or two additional target writes so that no data is lost.
+When the status changes from ready to not-ready, the target may send data thinking that the BeanPort is still ready. In this case the PIO FIFO is able to absorb one or two additional target writes so that no data is lost.
 
 ## Status
 
-Measured throughput: 10MHz Z80 target to MacBook USB host is solid at ~45KB/s sustained with zero data loss, using the target's write-ready status check between each byte.
+With a tight loop sending data from a 10MHz Z80 target to the USB host, with the target checking status before sending, no data is dropped.
 
-With no flow control at all - the target ignoring STATUS entirely and writing as fast as it can execute instructions - the maximum rate before the receive FIFO overruns is close to 60KB/s. A target that never checks status needs to pace itself to stay under that ceiling to avoid losing data.
+With no flow control at all - the target ignoring STATUS entirely and writing as fast as it can execute instructions - the target with no flow control can overrun the BeanPort's buffers - delays may be necessary between writes.
 
-Host-to-target is reliable, tested with both terminal emulator and a Python script sending a raw, unthrottled burst write, without chunking or pacing.
+Host-to-target is reliable, tested with both terminal emulator and a Python script sending a raw, unthrottled burst write.
 
-A `cat` to virtual serial-port test failed at any file size over 32 bytes. Given the successful Python and terminal emulator tests, this is assumed to be a host-side issue, and has not been pursued.
+A file `cat` to virtual serial-port test failed however. But resolution of this has not been pursued.
 
 ## Hardware
 
@@ -100,11 +100,9 @@ Each board gets its own build directory, e.g. `build/pico2_w/`
 
 ## Possible future development
 
-- **STATUS/CONFIG** STATUS is read-only today, but will be extended to double as CONFIG: a simple command channel for anything beyond byte transfer
-- **UM245R-compatible mode** — a possible drop-in replacement for UM245R
 - **Wi-Fi console** — using Pico W / Pico 2 W hardware
-- **RC2014 bus card** — packaging as a card for the RC2014 backplane
 - **UART passthrough** — would give the target a UART alongside USB
+- **RC2014 bus card** — packaging as a card for the RC2014 backplane
 
 ## License
 
