@@ -10,6 +10,19 @@ This approach is not new: the FTDI UM245R USB-to-parallel-FIFO module provides t
 
 The Pico presents a native address-mapped interface to the target system's bus, and a standard USB CDC serial port (driverless on macOS, Linux, and Windows) to the host. Bytes flow transparently with buffering in both directions — able to run a virtual terminal to the retrocomputer from the host system.
 
+## Status
+
+Target-to-host:
+
+- Works reliably with a 10MHz Z80 target executing a tight loop: checking BeanPort status and then sending data to the USB host
+- As expected, overruns the buffer if no flow control is used writing as fast as possible (delays may be used to pace the transmission)
+
+Host-to-target:
+
+- Works reliably for a terminal emulator sending data to the target
+- Works reliable for a Python script sending binary daoa to the target
+- Fails when sending a file to the target via the `cat` command (an identical test succeeds with the UM245R) - under investigation
+
 ## How it works
 
 BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) input, which will typically be mapped to the target's A0:
@@ -73,16 +86,6 @@ The PIO cannot be configured to check the status of both PIO FIFOs. Since read-a
 This means that write-ready status may be stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
 
 When the status changes from ready to not-ready, the target may send data thinking that the BeanPort is still ready. In this case the PIO FIFO is able to absorb one or two additional target writes so that no data is lost.
-
-## Status
-
-With a tight loop sending data from a 10MHz Z80 target to the USB host, with the target checking status before sending, no data is dropped.
-
-With no flow control at all - the target ignoring STATUS entirely and writing as fast as it can execute instructions - the target with no flow control can overrun the BeanPort's buffers - delays may be necessary between writes.
-
-Host-to-target is reliable, tested with both terminal emulator and a Python script sending a raw, unthrottled burst write.
-
-A file `cat` to virtual serial-port test failed however. But resolution of this has not been pursued.
 
 ## Hardware
 
