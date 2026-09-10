@@ -10,6 +10,13 @@ pico_enable_stdio_uart(beanport 0)
 # CR/LF translation would corrupt any binary data containing 0x0A
 target_compile_definitions(beanport PRIVATE PICO_STDIO_USB_DEFAULT_CRLF=0)
 
+# TinyUSB CDC buffer sizing - stock is 64/64/64 on RP2040 (Full Speed)
+target_compile_definitions(beanport PRIVATE
+    CFG_TUD_CDC_EP_BUFSIZE=256
+    CFG_TUD_CDC_RX_BUFSIZE=1024
+    CFG_TUD_CDC_TX_BUFSIZE=256
+)
+
 pico_generate_pio_header(beanport ${CMAKE_CURRENT_LIST_DIR}/beanport.pio)
 
 # Wi-Fi-only additions run only on pico_w/pico2_w, which pico-sdk flags via PICO_CYW43_SUPPORTED
