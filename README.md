@@ -2,32 +2,35 @@
 
 Raspberry Pi Pico firmware providing a USB bridge for retrocomputers.
 
-Most homebrew retrocomputing designs will provide a UART interface and use an FTDI adapter to connect a modern host over USB to the retrocomputer "target". This means dealing with baud rates, and either have the CPU clock at a UART-friendly rate or having a separate clock for the UART.
+Most homebrew retrocomputing designs will provide a UART interface and use an FTDI UART-to-USB adapter to connect to a modern host computer. This means dealing with baud rates, and either have the CPU clock at a UART-friendly rate or having a separate clock for the UART.
 
-BeanPort provides an alternative solution: using a Pico replaces the UART and FTDI adapter on the target system. The FTDI UM245R USB-to-parallel-FIFO module provides a similar function. The Pico is lower cost, and readily available. It also offers more flexibility through its SDK and additional capabilities.
+BeanPort provides an alternative solution: using a Pico replaces the UART and FTDI adapter on the retro target. The FTDI UM245R USB-to-parallel-FIFO module provides a similar function, but the Pico is lower cost, and more readily available. It also offers more flexibility through its SDK and additional capabilities.
 
 The Pico presents a two-register, 8-bit parallel interface to the target system's bus.
 
-To the host system, the BeanPort appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class). The Pico supports this through TinyUSB in its SDK. This works seamlessly on the hist using a standard driver to deliver a VCP (Virtual COM Port): e.g. on MacOS: /`dev/cu.usbmodemXXXX`
+The Pico's USB appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class) which the host computer recognises with a standard driver to deliver a VCP (Virtual COM Port). e.g. on MacOS: /`dev/cu.usbmodemXXXX`
+
+USB CDC is provided by [TinyUSB](https://github.com/hathach/tinyusb) within the Pico SDK.
 
 By comparison, the UM245R communicates with a FTDI-specific driver on the host system, which also typically presents the device to the host as a VCP.
 
-Bytes flow transparently with buffering in both directions — able to run a virtual terminal to the retrocomputer from the host system.
+Bytes flow transparently with buffering in both directions — able to run a virtual terminal like PuTTY, screen, minicom or CoolTerm on the host computer to access the retrocomputer.
 
 ## Status
 
-Tested with a Z80 homebrew target system and a MacOS host with serial terminal emulator.
+Tested with a Z80 homebrew target system and a MacOS host with `screen` serial terminal emulator.
 
 ## How it works
 
 BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) input, which will typically be mapped to the target's A0:
 
-| RS/A0 | Name   | Access     | Meaning                                                                                    |
-|-------|--------|------------|--------------------------------------------------------------------------------------------|
-| 0     | STATUS | read-only  | bit 0 = read-available, bit 1 = write-ready (matches the 6850 ACIA's RDRF/TDRE convention) |
-| 1     | DATA   | read/write | write = byte to send to the host; read = byte received from the host                       |
+| RS/A0 | Name   | Access     | Meaning                                     |
+|-------|--------|------------|---------------------------------------------|
+| 0     | STATUS | read-only  | bit 0 = read-available, bit 1 = write-ready |
+| 1     | DATA   | read/write | write = byte to send to the host            |
+|       |        |            | read = byte received from the host          |
 
-"Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. The decoder / glue logic provides an enable (EN#) signal, plus whatever logic the target's own bus needs to produce R/W. For a Z80 target: RD# maps directly to R/W.
+"Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. The target's decoder / glue logic will provide an enable (EN#) signal, plus any logic that is needed to produce R/W. For a Z80 target: RD# maps directly to R/W.
 
 Reading DATA when none is available returns `0x00`.
 
@@ -57,7 +60,7 @@ A byte crosses through several stages:
 8. The PIO drives the data bus with the pulled byte
 9. The data level shifter (3.3V → 5V), relays the data signals to the target system
 
-The host-driven steps (1-3) and the target-driven steps (4-9) operate independently of each other. The Pico's USB system will manage flow control with the host. The target will be told through the status register when there is data to read, or when it can send more data:
+The host-driven steps and the target-driven steps operate independently of each other. The Pico's USB system will manage flow control with the host. The target will be told through the status register when there is data to read, or when it can send more data:
 
 **Status → target**
 
@@ -80,7 +83,7 @@ The PIO cannot be configured to check the status of both PIO FIFOs. Since read-a
 
 This means that write-ready status may be stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
 
-When the status changes from ready to not-ready, the target may send data thinking that the BeanPort is still ready. In this case the PIO FIFO is able to absorb one or two additional target writes so that no data is lost.
+When the status changes from ready to not-ready, the target may send data as the BeanPort is still showing as ready. In this case the PIO FIFO can absorb a couple of writes so that no data is lost.
 
 ## Hardware
 
@@ -92,14 +95,14 @@ Example schematic (KiCad): [kicad/beanport.pdf](kicad/beanport.pdf)
 
 The repo's uf2 files can be transferred to Pico with standard BOOTSEL. Binary location: `build/<target>/bin/beanport.uf2`
 
-Firmware can be built from source - see Pico documentation for build toolchain.
+Firmware can be built from source - see Pico documentation for build toolchain / process.
 
 Each board gets its own build directory, e.g. `build/pico2_w/`
 
 ## Possible future development
 
 - **Wi-Fi console** — using Pico W / Pico 2 W hardware
-- **UART passthrough** — would give the target a UART alongside USB
+- **UART passthrough** — giving the target a UART alongside USB
 - **RC2014 bus card** — packaging as a card for the RC2014 backplane
 
 ## License
