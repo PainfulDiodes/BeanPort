@@ -2,26 +2,21 @@
 
 Raspberry Pi Pico firmware providing a USB bridge for retrocomputers.
 
-Most homebrew retrocomputing designs will provide a UART interface and use an FTDI adapter to connect a modern host over USB to the retrocomputer "target". This means dealing with baud rates, and either fixing the CPU clock to a UART-friendly rate, or having a separate clock for the UART.
+Most homebrew retrocomputing designs will provide a UART interface and use an FTDI adapter to connect a modern host over USB to the retrocomputer "target". This means dealing with baud rates, and either have the CPU clock at a UART-friendly rate or having a separate clock for the UART.
 
-BeanPort provides an alternative solution: a Pico replaces the UART on the target system, and provides the USB connection to a host computer. This removes the need to consider baud rates, allowing the CPU clock to be set independently, and provides faster transmission speeds.
+BeanPort provides an alternative solution: using a Pico replaces the UART and FTDI adapter on the target system. The FTDI UM245R USB-to-parallel-FIFO module provides a similar function. The Pico is lower cost, and readily available. It also offers more flexibility through its SDK and additional capabilities.
 
-This approach is not new: the FTDI UM245R USB-to-parallel-FIFO module provides the same function, but is not as easy to obtain as a Pico, and has a higher cost. The Pico could also potentially provide Wi-Fi connectivity.
+The Pico presents a two-register, 8-bit parallel interface to the target system's bus.
 
-The Pico presents a native address-mapped interface to the target system's bus, and a standard USB CDC serial port (driverless on macOS, Linux, and Windows) to the host. Bytes flow transparently with buffering in both directions — able to run a virtual terminal to the retrocomputer from the host system.
+To the host system, the BeanPort appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class). The Pico supports this through TinyUSB in its SDK. This works seamlessly on the hist using a standard driver to deliver a VCP (Virtual COM Port): e.g. on MacOS: /`dev/cu.usbmodemXXXX`
+
+By comparison, the UM245R communicates with a FTDI-specific driver on the host system, which also typically presents the device to the host as a VCP.
+
+Bytes flow transparently with buffering in both directions — able to run a virtual terminal to the retrocomputer from the host system.
 
 ## Status
 
-Target-to-host:
-
-- Works reliably with a 10MHz Z80 target executing a tight loop: checking BeanPort status and then sending data to the USB host
-- As expected, overruns the buffer if no flow control is used writing as fast as possible (delays may be used to pace the transmission)
-
-Host-to-target:
-
-- Works reliably for a terminal emulator sending data to the target
-- Works reliable for a Python script sending binary daoa to the target
-- Fails when sending a file to the target via the `cat` command (an identical test succeeds with the UM245R) - under investigation
+Tested with a Z80 homebrew target system and a MacOS host with serial terminal emulator.
 
 ## How it works
 
