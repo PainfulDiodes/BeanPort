@@ -2,23 +2,23 @@
 
 Raspberry Pi Pico firmware providing a USB bridge for retrocomputers.
 
-Most homebrew retrocomputing designs will provide a UART interface and use an FTDI UART-to-USB adapter to connect to a modern host computer. This means dealing with baud rates, and either have the CPU clock at a UART-friendly rate or having a separate clock for the UART.
+Most homebrew retrocomputing designs will provide a UART interface and use an FTDI UART-to-USB adapter to connect to a modern host computer. This means dealing with baud rates, and either fixing the CPU clock to a UART-friendly rate, or having a separate clock for the UART.
 
-BeanPort provides an alternative solution: using a Pico replaces the UART and FTDI adapter on the retro target. The FTDI UM245R USB-to-parallel-FIFO module provides a similar function, but the Pico is lower cost, and more readily available. It also offers more flexibility through its SDK and additional capabilities.
+BeanPort provides an alternative solution: using a Pico replaces the UART and FTDI adapter on the retro target. The FTDI UM245R USB-to-parallel-FIFO module provides a similar function, but the Pico is lower cost and more readily available. It also offers more flexibility through its SDK and additional capabilities.
 
 The Pico presents a two-register, 8-bit parallel interface to the target system's bus.
 
-The Pico's USB appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class) which the host computer recognises with a standard driver to deliver a VCP (Virtual COM Port). e.g. on MacOS: /`dev/cu.usbmodemXXXX`
+The Pico's USB appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class) which the host computer recognises with a standard driver to deliver a VCP (Virtual COM Port), e.g. on macOS: `/dev/cu.usbmodemXXXX`
 
 USB CDC is provided by [TinyUSB](https://github.com/hathach/tinyusb) within the Pico SDK.
 
-By comparison, the UM245R communicates with a FTDI-specific driver on the host system, which also typically presents the device to the host as a VCP.
+By comparison, the UM245R communicates with an FTDI-specific driver on the host system, which also typically presents the device to the host as a VCP.
 
 Bytes flow transparently with buffering in both directions — able to run a virtual terminal like PuTTY, screen, minicom or CoolTerm on the host computer to access the retrocomputer.
 
 ## Status
 
-Tested with a Z80 homebrew target system and a MacOS host with `screen` serial terminal emulator.
+Tested with a Z80 homebrew target system and a macOS host with the `screen` serial terminal emulator.
 
 ## How it works
 
