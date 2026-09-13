@@ -8,13 +8,13 @@ BeanPort provides an alternative solution: using a Pico replaces the UART and FT
 
 The Pico presents a two-register, 8-bit parallel interface to the target system's bus.
 
-The Pico's USB appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class) which the host computer recognises with a standard driver to deliver a VCP (Virtual COM Port), e.g. on macOS: `/dev/cu.usbmodemXXXX`
+The Pico's USB appears as a standard CDC-ACM USB device (Abstract Control Model Communications Device Class) which the host computer recognises with a standard driver to deliver a VCP (Virtual COM Port) — on macOS, `/dev/cu.usbmodemXXXX`
 
 USB CDC is provided by [TinyUSB](https://github.com/hathach/tinyusb) within the Pico SDK.
 
 By comparison, the UM245R communicates with an FTDI-specific driver on the host system, which also typically presents the device to the host as a VCP.
 
-Bytes flow transparently with buffering in both directions — able to run a virtual terminal like PuTTY, screen, minicom or CoolTerm on the host computer to access the retrocomputer.
+Bytes flow transparently with buffering in both directions, so you can run a virtual terminal — PuTTY, screen, minicom, or CoolTerm — on the host computer to access the retrocomputer.
 
 ## Status
 
@@ -24,11 +24,10 @@ Tested with a Z80 homebrew target system and a macOS host with the `screen` seri
 
 BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) input, which will typically be mapped to the target's A0:
 
-| RS/A0 | Name   | Access     | Meaning                                     |
-|-------|--------|------------|---------------------------------------------|
-| 0     | STATUS | read-only  | bit 0 = read-available, bit 1 = write-ready |
-| 1     | DATA   | read/write | write = byte to send to the host            |
-|       |        |            | read = byte received from the host          |
+| RS/A0 | Name   | Access     | Meaning                                                                                    |
+|-------|--------|------------|--------------------------------------------------------------------------------------------|
+| 0     | STATUS | read-only  | bit 0 = read-available, bit 1 = write-ready (matches the 6850 ACIA's RDRF/TDRE convention) |
+| 1     | DATA   | read/write | write = byte to send to the host; read = byte received from the host                       |
 
 "Read" and "Write" are from the target system's point of view. Which two actual port numbers these land on is a property of the target system's own address decoder — see the schematic for the specific mapping used there as an example. The target's decoder / glue logic will provide an enable (EN#) signal, plus any logic that is needed to produce R/W. For a Z80 target: RD# maps directly to R/W.
 
@@ -81,9 +80,9 @@ The PIO takes the read-available signal directly from the status of the PIO FIFO
 
 The PIO cannot be configured to check the status of both PIO FIFOs. Since read-available status already uses that mechanism, write-ready has to work differently: it's determined by the core1 program instead, and set on an additional GPIO pin, which the PIO reads as its write-ready status.
 
-This means that write-ready status may be stale when the target checks it - the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
+This means that write-ready status may be stale when the target checks it — the core1 program sets the status in a loop, and so the write-ready status will be set a little time after the FIFO's state changes.
 
-When the status changes from ready to not-ready, the target may send data as the BeanPort is still showing as ready. In this case the PIO FIFO can absorb a couple of writes so that no data is lost.
+When the status changes from ready to not-ready, the target may send data thinking that the BeanPort is still ready. In this case the PIO FIFO can absorb a couple of writes so that no data is lost.
 
 ## Hardware
 
@@ -95,7 +94,7 @@ Example schematic (KiCad): [kicad/beanport.pdf](kicad/beanport.pdf)
 
 The repo's uf2 files can be transferred to Pico with standard BOOTSEL. Binary location: `build/<target>/bin/beanport.uf2`
 
-Firmware can be built from source - see Pico documentation for build toolchain / process.
+Firmware can be built from source — see Pico documentation for build toolchain / process.
 
 Each board gets its own build directory, e.g. `build/pico2_w/`
 
