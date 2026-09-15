@@ -11,6 +11,8 @@
 // read-available status is read via this SM's own `mov status`
 #define WRITE_READY_PIN 11
 
+#define RS_BIT 10
+
 static PIO pio;
 static uint sm;
 
@@ -27,8 +29,10 @@ static void __not_in_flash_func(core1_main)() {
         // pio -> core0 (USB)
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
             uint32_t rx_frame = pio_sm_get(pio, sm);
+            bool is_config = !((rx_frame >> RS_BIT) & 1); // RS(A0)=0 => STATUS/CONFIG
             // doesn't block: wready checked
             // _inline variant rather than a flash-resident call
+            multicore_fifo_push_blocking_inline(is_config ? '1' : '0');
             multicore_fifo_push_blocking_inline(rx_frame);
         }
 

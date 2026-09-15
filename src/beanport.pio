@@ -8,7 +8,7 @@
 ; GP9    = EN#
 ; GP10   = RS(A0) : 0 = STATUS/CONFIG, 1 = DATA
 ; GP11   = WRITE_READY_PIN - the RX-FIFO is ready for the bus to send another byte.
-;          Refreshed by core1 on each loop iteration. This may allow the status to be 
+;          Refreshed by core1 on each loop iteration. This may allow the status to be
 ;          stale, but the FIFO can absorb an additional couple of writes
 
 .program beanport
@@ -52,8 +52,8 @@ write:
     ; TODO: further analysis is required
     nop [6]
     mov isr, null         ; clean ISR regardless of previous push noblock's outcome
-    in pins, 8            ; sample D0-D7
-    push noblock          ; => RX FIFO if room; silently dropped if full 
+    in pins, 11           ; sample D0-D7 (bits 0-7), R/W (bit 8), EN# (bit 9), RS/A0 (bit 10) in one shot
+    push noblock          ; => RX FIFO if room; silently dropped if full
     wait 1 gpio 9         ; wait for EN# to deassert
     jmp start
 .wrap
