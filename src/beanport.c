@@ -26,8 +26,7 @@ static void __not_in_flash_func(core1_main)() {
 
         gpio_put(WRITE_READY_PIN, pio_sm_is_rx_fifo_empty(pio, sm));
 
-        // pio -> core0 (USB); core1 passes the raw word through as-is, core0
-        // is the one that understands its composition (RS_BIT etc.)
+        // pio -> core0 (USB)
         if (!pio_sm_is_rx_fifo_empty(pio, sm) && multicore_fifo_wready()) {
             uint32_t rx_frame = pio_sm_get(pio, sm);
             // doesn't block: wready checked
