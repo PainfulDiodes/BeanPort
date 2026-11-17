@@ -806,464 +806,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "painfuldiodes:SN74LVC245AN"
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U"
-				(at -10.16 17.78 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "SN74LVC245AN"
-				(at 10.16 17.78 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" "Package_DIP:DIP-20_W7.62mm"
-				(at 22.86 -16.51 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://www.ti.com/lit/ds/scas218x/scas218x.pdf"
-				(at -1.27 -6.35 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "8-Bit Single-Supply Bus Transceiver With 5V tolerant input voltage and 3-State Outputs 24mA, PDIP-20"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "Noninverting Bidirectional"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "DIP*W7.62mm*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "SN74LVC245AN_0_1"
-				(rectangle
-					(start -10.16 15.24)
-					(end 10.16 -15.24)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-			)
-			(symbol "SN74LVC245AN_1_1"
-				(pin input line
-					(at -12.7 10.16 0)
-					(length 2.54)
-					(name "DIR"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 5.08 0)
-					(length 2.54)
-					(name "A1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 2.54 0)
-					(length 2.54)
-					(name "A2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 0 0)
-					(length 2.54)
-					(name "A3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 -2.54 0)
-					(length 2.54)
-					(name "A4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 -5.08 0)
-					(length 2.54)
-					(name "A5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "6"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 -7.62 0)
-					(length 2.54)
-					(name "A6"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "7"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 -10.16 0)
-					(length 2.54)
-					(name "A7"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "8"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -12.7 -12.7 0)
-					(length 2.54)
-					(name "A8"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "9"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 0 -17.78 90)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "10"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 -12.7 180)
-					(length 2.54)
-					(name "B8"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "11"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 -10.16 180)
-					(length 2.54)
-					(name "B7"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "12"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 -7.62 180)
-					(length 2.54)
-					(name "B6"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "13"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 -5.08 180)
-					(length 2.54)
-					(name "B5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "14"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 -2.54 180)
-					(length 2.54)
-					(name "B4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "15"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 0 180)
-					(length 2.54)
-					(name "B3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "16"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 2.54 180)
-					(length 2.54)
-					(name "B2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "17"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 12.7 5.08 180)
-					(length 2.54)
-					(name "B1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "18"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at 12.7 10.16 180)
-					(length 2.54)
-					(name "~{OE}"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "19"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 0 17.78 270)
-					(length 2.54)
-					(name "VCC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "20"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "MCU_Module:RaspberryPi_Pico"
 			(pin_names
 				(offset 0.762)
@@ -2294,6 +1836,464 @@
 						)
 					)
 					(alternate "VBUS_IN" power_in line)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "painfuldiodes:SN74LVC245AN"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at -10.16 17.78 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "SN74LVC245AN"
+				(at 10.16 17.78 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Package_DIP:DIP-20_W7.62mm"
+				(at 22.86 -16.51 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.ti.com/lit/ds/scas218x/scas218x.pdf"
+				(at -1.27 -6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "8-Bit Single-Supply Bus Transceiver With 5V tolerant input voltage and 3-State Outputs 24mA, PDIP-20"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "Noninverting Bidirectional"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "DIP*W7.62mm*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "SN74LVC245AN_0_1"
+				(rectangle
+					(start -10.16 15.24)
+					(end 10.16 -15.24)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+			)
+			(symbol "SN74LVC245AN_1_1"
+				(pin input line
+					(at -12.7 10.16 0)
+					(length 2.54)
+					(name "DIR"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 5.08 0)
+					(length 2.54)
+					(name "A1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 2.54 0)
+					(length 2.54)
+					(name "A2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 0 0)
+					(length 2.54)
+					(name "A3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 -2.54 0)
+					(length 2.54)
+					(name "A4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 -5.08 0)
+					(length 2.54)
+					(name "A5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 -7.62 0)
+					(length 2.54)
+					(name "A6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 -10.16 0)
+					(length 2.54)
+					(name "A7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -12.7 -12.7 0)
+					(length 2.54)
+					(name "A8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "9"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 -17.78 90)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "10"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 -12.7 180)
+					(length 2.54)
+					(name "B8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "11"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 -10.16 180)
+					(length 2.54)
+					(name "B7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "12"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 -7.62 180)
+					(length 2.54)
+					(name "B6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "13"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 -5.08 180)
+					(length 2.54)
+					(name "B5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "14"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 -2.54 180)
+					(length 2.54)
+					(name "B4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "15"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 0 180)
+					(length 2.54)
+					(name "B3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "16"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 2.54 180)
+					(length 2.54)
+					(name "B2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "17"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 12.7 5.08 180)
+					(length 2.54)
+					(name "B1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "18"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 12.7 10.16 180)
+					(length 2.54)
+					(name "~{OE}"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "19"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 17.78 270)
+					(length 2.54)
+					(name "VCC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "20"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
 				)
 			)
 			(embedded_fonts no)
@@ -3453,7 +3453,7 @@
 		)
 		(uuid "f4ea1ffa-ea00-4af5-bb45-214df9e3fb4c")
 	)
-	(label "PA7(D7)"
+	(label "D7"
 		(at 63.5 48.26 0)
 		(effects
 			(font
@@ -3473,7 +3473,7 @@
 		)
 		(uuid "07e787a8-9399-41bb-b6bc-5c80f5dddd5f")
 	)
-	(label "PA2(D2)"
+	(label "D2"
 		(at 8.89 40.64 0)
 		(effects
 			(font
@@ -3483,7 +3483,7 @@
 		)
 		(uuid "0becda6d-8453-46db-9b46-c2571679144f")
 	)
-	(label "PB5(R{slash}~{W})"
+	(label "R{slash}~{W}"
 		(at 63.5 92.71 0)
 		(effects
 			(font
@@ -3503,7 +3503,7 @@
 		)
 		(uuid "0df76fdc-b133-4979-ad8f-92c8c4a4e055")
 	)
-	(label "PB0(A0)"
+	(label "RS (A0)"
 		(at 8.89 66.04 0)
 		(effects
 			(font
@@ -3523,7 +3523,7 @@
 		)
 		(uuid "11311990-41c0-49ba-a38a-fde75103d884")
 	)
-	(label "PA4(D4)"
+	(label "D4"
 		(at 63.5 40.64 0)
 		(effects
 			(font
@@ -3533,7 +3533,7 @@
 		)
 		(uuid "14855624-c87a-4a0d-9283-3a3c449c10fb")
 	)
-	(label "PB2(A2)"
+	(label "A2"
 		(at 8.89 68.58 0)
 		(effects
 			(font
@@ -3543,17 +3543,7 @@
 		)
 		(uuid "266ebb4a-6170-40ba-ac02-5852d1e48821")
 	)
-	(label "CB2"
-		(at 46.99 76.2 180)
-		(effects
-			(font
-				(size 1.0668 1.0668)
-			)
-			(justify right bottom)
-		)
-		(uuid "26d652b2-3eeb-452d-8b0b-ed2c99b12666")
-	)
-	(label "PA5(D5)"
+	(label "D5"
 		(at 63.5 43.18 0)
 		(effects
 			(font
@@ -3593,7 +3583,7 @@
 		)
 		(uuid "525a7e6f-d79c-4e54-a6ee-53028e774ae9")
 	)
-	(label "PB7(CLK2)"
+	(label "Future2"
 		(at 63.5 97.79 0)
 		(effects
 			(font
@@ -3603,7 +3593,7 @@
 		)
 		(uuid "57ae36f7-2d12-4a3c-93a7-160e837f3410")
 	)
-	(label "PB5(R{slash}~{W})"
+	(label "R{slash}~{W}"
 		(at 106.68 25.4 180)
 		(effects
 			(font
@@ -3633,7 +3623,7 @@
 		)
 		(uuid "694f3922-b7f7-4b77-b413-2f39cfaa27c8")
 	)
-	(label "PB7(CLK2)"
+	(label "Future2"
 		(at 49.53 73.66 180)
 		(effects
 			(font
@@ -3643,7 +3633,7 @@
 		)
 		(uuid "69702ef1-a705-492e-a154-a75da50d9031")
 	)
-	(label "~{BPEN}"
+	(label "~{EN}"
 		(at 63.5 90.17 0)
 		(effects
 			(font
@@ -3653,7 +3643,7 @@
 		)
 		(uuid "6f4ebaef-4f9b-4587-9106-05c8323db64f")
 	)
-	(label "PB3(A3)"
+	(label "A3"
 		(at 63.5 87.63 0)
 		(effects
 			(font
@@ -3663,7 +3653,7 @@
 		)
 		(uuid "76d076dd-c8d5-4f84-bbcc-8699f7ca3cfd")
 	)
-	(label "PA4(D4)"
+	(label "D4"
 		(at 8.89 43.18 0)
 		(effects
 			(font
@@ -3673,7 +3663,7 @@
 		)
 		(uuid "7f9485f7-1815-41b6-bc25-0eb775785bd0")
 	)
-	(label "PB2(A2)"
+	(label "A2"
 		(at 63.5 85.09 0)
 		(effects
 			(font
@@ -3683,7 +3673,7 @@
 		)
 		(uuid "80169814-fd1c-4f38-9c1b-2ad2ffbf1a66")
 	)
-	(label "PB0(A0)"
+	(label "RS (A0)"
 		(at 63.5 80.01 0)
 		(effects
 			(font
@@ -3713,7 +3703,7 @@
 		)
 		(uuid "974606d8-9923-4f24-8009-9561c44553fd")
 	)
-	(label "PA2(D2)"
+	(label "D2"
 		(at 63.5 35.56 0)
 		(effects
 			(font
@@ -3723,7 +3713,7 @@
 		)
 		(uuid "98c25983-4f47-4977-9306-1f0b9a0abad7")
 	)
-	(label "PB5(R{slash}~{W})"
+	(label "R{slash}~{W}"
 		(at 49.53 71.12 180)
 		(effects
 			(font
@@ -3733,17 +3723,7 @@
 		)
 		(uuid "98e32f38-19a1-4804-8e18-2d1546328c04")
 	)
-	(label "CB1"
-		(at 11.43 76.2 0)
-		(effects
-			(font
-				(size 1.0668 1.0668)
-			)
-			(justify left bottom)
-		)
-		(uuid "9a6a34d3-a20a-4ce0-bac2-5a2fbe773c33")
-	)
-	(label "PB6"
+	(label "Future1"
 		(at 63.5 95.25 0)
 		(effects
 			(font
@@ -3753,7 +3733,7 @@
 		)
 		(uuid "9fb8c1bd-e758-4001-aeb3-39886db77a71")
 	)
-	(label "PA3(D3)"
+	(label "D3"
 		(at 49.53 40.64 180)
 		(effects
 			(font
@@ -3763,7 +3743,7 @@
 		)
 		(uuid "a434ce57-7ffd-4800-807e-dfa335d75097")
 	)
-	(label "PA6(D6)"
+	(label "D6"
 		(at 63.5 45.72 0)
 		(effects
 			(font
@@ -3772,16 +3752,6 @@
 			(justify left bottom)
 		)
 		(uuid "a46ad909-1d32-4808-96f3-8952b3725d78")
-	)
-	(label "CA2"
-		(at 46.99 48.26 180)
-		(effects
-			(font
-				(size 1.0668 1.0668)
-			)
-			(justify right bottom)
-		)
-		(uuid "a57342eb-564d-414d-891b-d324dd70d341")
 	)
 	(label "GND"
 		(at 8.89 50.8 0)
@@ -3793,7 +3763,7 @@
 		)
 		(uuid "a94d6cdf-9b93-416d-ae17-655b025768e8")
 	)
-	(label "PA6(D6)"
+	(label "D6"
 		(at 8.89 45.72 0)
 		(effects
 			(font
@@ -3803,7 +3773,7 @@
 		)
 		(uuid "acfc97b9-5533-4790-80e3-b8c83ded3982")
 	)
-	(label "PB6"
+	(label "Future1"
 		(at 8.89 73.66 0)
 		(effects
 			(font
@@ -3823,7 +3793,7 @@
 		)
 		(uuid "b1aa0fef-d428-4d58-a559-c5d753743727")
 	)
-	(label "PA1(D1)"
+	(label "D1"
 		(at 63.5 33.02 0)
 		(effects
 			(font
@@ -3833,7 +3803,7 @@
 		)
 		(uuid "b628f654-3911-4172-aa4b-01a77f2b0679")
 	)
-	(label "PA5(D5)"
+	(label "D5"
 		(at 49.53 43.18 180)
 		(effects
 			(font
@@ -3843,7 +3813,7 @@
 		)
 		(uuid "b663c343-8438-422a-86b7-b83c088f970b")
 	)
-	(label "PB3(A3)"
+	(label "A3"
 		(at 49.53 68.58 180)
 		(effects
 			(font
@@ -3873,7 +3843,7 @@
 		)
 		(uuid "bdd6da5b-bc78-44b4-b31b-b52b834e5b4e")
 	)
-	(label "PA1(D1)"
+	(label "D1"
 		(at 49.53 38.1 180)
 		(effects
 			(font
@@ -3883,7 +3853,7 @@
 		)
 		(uuid "c8cac823-0d83-44dc-9fa6-ae4c599d6782")
 	)
-	(label "~{BPEN}"
+	(label "~{EN}"
 		(at 8.89 71.12 0)
 		(effects
 			(font
@@ -3903,7 +3873,7 @@
 		)
 		(uuid "ced5d4de-6845-4ad4-b66e-20f1279374b1")
 	)
-	(label "PB1(A1)"
+	(label "A1"
 		(at 63.5 82.55 0)
 		(effects
 			(font
@@ -3913,7 +3883,7 @@
 		)
 		(uuid "d77976a1-95db-4db0-8f53-eb68456511da")
 	)
-	(label "PB1(A1)"
+	(label "A1"
 		(at 49.53 66.04 180)
 		(effects
 			(font
@@ -3933,7 +3903,7 @@
 		)
 		(uuid "db2e6f80-2bc8-465a-a8f4-b8fd693aa394")
 	)
-	(label "PA3(D3)"
+	(label "D3"
 		(at 63.5 38.1 0)
 		(effects
 			(font
@@ -3943,7 +3913,7 @@
 		)
 		(uuid "ddfc6ef4-88a0-43dc-8f3f-b9335169704d")
 	)
-	(label "PA7(D7)"
+	(label "D7"
 		(at 49.53 45.72 180)
 		(effects
 			(font
@@ -3953,7 +3923,7 @@
 		)
 		(uuid "e578efce-c58c-4b8d-98c5-39223a6f9102")
 	)
-	(label "PA0(D0)"
+	(label "D0"
 		(at 8.89 38.1 0)
 		(effects
 			(font
@@ -3963,17 +3933,7 @@
 		)
 		(uuid "ea698cbf-17e4-4284-a125-0a737f82fa67")
 	)
-	(label "CA1"
-		(at 11.43 48.26 0)
-		(effects
-			(font
-				(size 1.0668 1.0668)
-			)
-			(justify left bottom)
-		)
-		(uuid "eaac6338-1fb5-4efc-8649-c328a0cdaad4")
-	)
-	(label "~{BPEN}"
+	(label "~{EN}"
 		(at 60.96 25.4 0)
 		(effects
 			(font
@@ -4003,7 +3963,7 @@
 		)
 		(uuid "f0f598ae-8221-4b6d-a06d-b58cd0499a8b")
 	)
-	(label "PA0(D0)"
+	(label "D0"
 		(at 63.5 30.48 0)
 		(effects
 			(font
@@ -4107,7 +4067,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "3d50e198-1fcd-4eed-bf54-ef49f5bfca0a")
-		(property "Reference" "J4"
+		(property "Reference" "J2"
 			(at 27.94 57.15 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4117,7 +4077,7 @@
 				)
 			)
 		)
-		(property "Value" "VIA-B (BeanPort Control)"
+		(property "Value" "VIA-B (Control)"
 			(at 27.94 59.69 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4205,7 +4165,7 @@
 		(instances
 			(project "beanport"
 				(path "/21a34662-80d2-4846-95a7-3b568b6a5490"
-					(reference "J4")
+					(reference "J2")
 					(unit 1)
 				)
 			)
@@ -4577,7 +4537,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "9ef13b53-9484-4391-909b-2770fb78ea11")
-		(property "Reference" "J3"
+		(property "Reference" "J1"
 			(at 27.94 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4587,7 +4547,7 @@
 				)
 			)
 		)
-		(property "Value" "VIA-A (BeanPort Data)"
+		(property "Value" "VIA-A (Data)"
 			(at 27.94 31.75 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4675,7 +4635,7 @@
 		(instances
 			(project "beanport"
 				(path "/21a34662-80d2-4846-95a7-3b568b6a5490"
-					(reference "J3")
+					(reference "J1")
 					(unit 1)
 				)
 			)
