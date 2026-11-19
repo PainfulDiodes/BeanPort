@@ -9,7 +9,7 @@
 #define PIO_BASE_PIN 0
 
 // read-available status is read via this SM's own `mov status`
-#define WRITE_READY_PIN 11
+#define WRITE_READY_PIN 16
 
 static PIO pio;
 static uint sm;

@@ -4,12 +4,14 @@
 ; drives D0-D7 on bus read cycles
 ;
 ; GP0-7  = D0-D7
-; GP8    = R/W : HIGH = write (jmp pin)
-; GP9    = EN#
-; GP10   = RS(A0) : 0 = STATUS/CONFIG, 1 = DATA
-; GP11   = WRITE_READY_PIN - the RX-FIFO is ready for the bus to send another byte.
-;          Refreshed by core1 on each loop iteration. This may allow the status to be 
-;          stale, but the FIFO can absorb an additional couple of writes
+; GP8    = RS(A0) : 0 = STATUS/CONFIG, 1 = DATA
+; GP9-11 = A1-A3 (currently unused)
+; GP12   = EN#
+; GP13   = R/W : HIGH = read (jmp pin) - 6502 RWB idiom
+; GP14-15 = reserved for future use
+; GP16   = WRITE_READY_PIN - no external connection - the RX-FIFO is ready for the bus 
+;          to send another byte. Refreshed by core1 on each loop iteration. This may allow 
+;          the status to be stale, but the FIFO can absorb an additional couple of writes
 
 .program beanport
 
@@ -18,13 +20,25 @@ set x, 0                  ; permanently 0 - read_data's empty-FIFO fallback
 
 .wrap_target
 start:
-    wait 0 gpio 9         ; Wait for EN# to be asserted (low)
-    jmp pin write     ; R/W (jmp pin) high = write, low = read
+    wait 0 gpio 12        ; Wait for EN# to be asserted (low)
+    jmp pin read          ; R/W (jmp pin) high = read, low = write
+write:
+    ; Deliberate margin before sampling was designed for Z80:
+    ; 7 PIO cycles (~52.5ns @ 133MHz), estimated to be half a 10MHz Z80 T-state.
+    ; delay allows for the data to have settled
+    ; TODO: further analysis is required; this may be fragile for memory-mapped 65C02
+    ; but safe if interfaced by a VIA 
+    nop [6]
+    mov isr, null         ; clean ISR regardless of previous push noblock's outcome
+    in pins, 8            ; sample D0-D7
+    push noblock          ; => RX FIFO if room; silently dropped if full 
+    wait 1 gpio 12        ; wait for EN# to deassert
+    jmp start
 read:
     mov osr, !null        ; all 1s
     out pindirs, 8        ; Set D0-D7 as outputs (set pindirs only sets 5 bits)
     mov osr, pins         ; snapshot of GP0-31
-    out null, 10          ; discard bits 0-9 (D0-D7, R/W, EN#) - bit 0 is now RS(A0)
+    out null, 8           ; discard bits 0-7 (D0-D7) - bit 0 is now RS(A0)
     out y, 1              ; isolate bit 0 (RS) into y - y is replaced by value of single bit
     jmp !y read_status    ; RS(A0)=0 == STATUS
 read_data:
@@ -34,7 +48,7 @@ read_data:
 read_status:
     mov isr, null         ; clear ISR (where the status byte is assembled)
     mov osr, pins         ; load osr with pin snapshot
-    out null, 11          ; discard bits 0-10 (D0-D7, R/W, EN#, RS) - bit 0 now = GP11 (write-ready)
+    out null, 16          ; discard bits 0-15 (D0-D7, A0-A3, EN#, R/W, PB6-7) - bit 0 now = GP16 (write-ready)
     out y, 1              ; write-ready bit into y
     in y, 1               ; shift write-ready bit into ISR - bit 0
     mov y, !status        ; read-available bit into y (inverted as the sense is "TX FIFO is empty")
@@ -42,20 +56,9 @@ read_status:
     mov osr, isr          ; move the assembled status byte into osr
     out pins, 8           ; output the status byte
 read_done:
-    wait 1 gpio 9         ; wait for EN# to deassert
+    wait 1 gpio 12        ; wait for EN# to deassert
     mov osr, null         ; all 0s
     out pindirs, 8        ; Set D0-D7 as inputs (set pindirs only sets 5 bits)
-    jmp start
-write:
-    ; Deliberate margin before sampling - 7 PIO cycles (~52.5ns @ 133MHz), estimated to be
-    ; half a 10MHz Z80 T-state.
-    ; TODO: further analysis is required
-    nop [6]
-    mov isr, null         ; clean ISR regardless of previous push noblock's outcome
-    in pins, 8            ; sample D0-D7
-    push noblock          ; => RX FIFO if room; silently dropped if full 
-    wait 1 gpio 9         ; wait for EN# to deassert
-    jmp start
 .wrap
 
 % c-sdk {
@@ -65,7 +68,7 @@ static inline void beanport_program_init(PIO pio, uint sm, uint offset, uint bas
     pio_sm_config c = beanport_program_get_default_config(offset);
     sm_config_set_in_pins(&c, base_pin);
     sm_config_set_out_pins(&c, base_pin, 8); 
-    sm_config_set_jmp_pin(&c, 8); // GP8 = R/W
+    sm_config_set_jmp_pin(&c, 13); // GP13 = R/W
  
     // produces "TX FIFO is empty" - which is inverted in the PIO for read-available status
     sm_config_set_mov_status(&c, STATUS_TX_LESSTHAN, 1);
