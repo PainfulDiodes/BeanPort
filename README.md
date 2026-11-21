@@ -44,7 +44,7 @@ Reading data when none is available returns `0x00`.
 
 BeanPort should work with all current Raspberry Pi Pico variants: Pico (RP2040) and Pico 2 (RP2350), and wireless (`W`) versions. To date, It has only tested with a non-wireless RP2040.
 
-The following example schematic shows the designations of the Pico pins, and has 3.3V level shifters whose outputs are in spec for TTL-level inputs - 74HCT/LS logic, the W65C22N VIA and the Z80 - but I think not CMOS-level inputs such as HC logic. The connectors indicate how I intend to connect the BeanPort to a board with a W65C22N VIA "slow bus" - using the same connector layout as [Garth Wilson's 6502 design](https://wilsonminesco.com/6502primer/potpourri.html):
+The following example schematic shows the designations of the Pico pins, and has 3.3V level shifters whose outputs are in spec for TTL-level inputs - 74HCT/LS logic, the W65C22N VIA and the Z80 - but I think not CMOS-level inputs such as HC logic. The connectors indicate how I intend to connect the BeanPort to my [Bean65](https://github.com/PainfulDiodes/bean65) board which has a W65C22N VIA "slow bus" - using the same connector layout as [Garth Wilson's 6502 design](https://wilsonminesco.com/6502primer/potpourri.html):
 
 ![Schematic](./images/beanport_schematic.png)
 
@@ -69,5 +69,6 @@ MIT — see [LICENSE](LICENSE).
 ## Links
 
 - [BeanZee](https://github.com/PainfulDiodes/BeanZee)
+- [Bean65](https://github.com/PainfulDiodes/bean65)
 - [BeanBoard](https://github.com/PainfulDiodes/BeanBoard)
 - [PainfulDiodes Blog: BeanPort](https://painfuldiodes.wordpress.com/category/beanport/)
