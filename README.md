@@ -20,7 +20,10 @@ Bytes flow transparently with buffering in both directions, so you can run a vir
 
 ## Status
 
-Tested with a Z80 homebrew target system and a macOS host with `screen` serial terminal emulator.
+Tested with a macOS host using the `screen` serial terminal emulator, and two homebrew target systems:
+
+- 10MHz Z80 - as a port-addressed device (IORQ#)
+- 65C02 at up to 2.67MHz - as a memory-mapped device, with EN# gated on PHI2
 
 ## Target Interface
 
@@ -31,7 +34,7 @@ BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) i
 | 0     | STATUS | read-only  | bit 0 = read-available, bit 1 = write-ready (matches the 6850 ACIA's RDRF/TDRE convention) |
 | 1     | DATA   | read/write | write = byte to send to the host; read = byte received from the host                       |
 
-The target will also provide an enable (EN#) signal, plus any logic that is needed to produce R/W. For a Z80 target: RD# maps directly to R/W.
+The target will also provide an enable (EN#) signal, plus any logic that is needed to produce R/W. R/W is high for a read and low for a write, 6502-style. For a Z80 target: WR# maps directly to R/W.
 
 Reading DATA when none is available returns `0x00`.
 
