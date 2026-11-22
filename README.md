@@ -2,6 +2,8 @@
 
 Raspberry Pi Pico firmware providing a USB bridge for retrocomputers.
 
+See also: [PainfulDiodes Blog: BeanPort Pico USB bridge for Retro Homebrew](https://painfuldiodes.wordpress.com/2026/09/14/beanport/)
+
 Most homebrew retrocomputing designs provide a UART interface and use an FTDI UART-to-USB adapter to connect to a modern host computer. This means dealing with baud rates, and either fixing the CPU clock to a UART-friendly rate, or having a separate clock for the UART.
 
 BeanPort provides an alternative solution: using a Pico to replace the UART and FTDI adapter on the retro target. The FTDI UM245R USB-to-parallel-FIFO module provides a similar function, but the Pico is lower cost and more readily available. It also offers more flexibility through the Pico's SDK and additional capabilities.
