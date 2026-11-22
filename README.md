@@ -20,13 +20,6 @@ USB CDC is provided by [TinyUSB](https://github.com/hathach/tinyusb) within the 
 
 Bytes flow transparently with buffering in both directions, so you can run a virtual terminal — PuTTY, screen, minicom, CoolTerm etc. — on the host computer to access the retrocomputer.
 
-## Status
-
-Tested with a macOS host using the `screen` serial terminal emulator, in two setups:
-
-- 10MHz Z80 - as a port-addressed device (IORQ#)
-- 65C02 at up to 2.67MHz - as a memory-mapped device, with EN# gated on PHI2
-
 ## Target Interface
 
 BeanPort provides two 8-bit registers, distinguished by a Register Select (RS) input (which will typically be mapped to the target's A0):
@@ -40,11 +33,26 @@ The target will also provide EN# (enable), and R/W# - high for a read and low fo
 
 Reading data when none is available returns `0x00`.
 
+## Bus Timing
+
+The bus is handled by a PIO state machine. It responds a fixed number of PIO cycles after EN# falls - at 125MHz on an RP2040:
+
+- **Read**: BeanPort drives the data bus as soon as EN# falls, but the byte is only valid about 90ns later for DATA, and about 145ns later for STATUS. The bus is released when EN# rises
+- **Write**: BeanPort samples the data bus about 95ns after EN# falls, not when EN# rises
+- RS (A0) and R/W# must be valid when EN# falls, and held until it rises
+
+The figures above are estimated from the PIO cycle counts, and don't include level shifter delays.
+
+Tests succeeded with:
+
+- 10MHz Z80 - as a port-addressed device (IORQ#)
+- 65C02 at up to 2.67MHz with a symmetrical clock - as a memory-mapped device, with EN# gated on PHI2
+
 ## Hardware
 
-BeanPort should work with all current Raspberry Pi Pico variants: Pico (RP2040) and Pico 2 (RP2350), and wireless (`W`) versions. To date, It has only tested with a non-wireless RP2040.
+BeanPort should work with all current Raspberry Pi Pico variants: Pico (RP2040) and Pico 2 (RP2350), and wireless (`W`) versions. To date, it has only been tested with a non-wireless RP2040.
 
-The following example schematic shows the designations of the Pico pins, and has 3.3V level shifters whose outputs are in spec for TTL-level inputs - 74HCT/LS logic, the W65C22N VIA and the Z80 - but I think not CMOS-level inputs such as HC logic. The connectors indicate how I intend to connect the BeanPort to my [Bean65](https://github.com/PainfulDiodes/bean65) board which has a W65C22N VIA "slow bus" - using the same connector layout as [Garth Wilson's 6502 design](https://wilsonminesco.com/6502primer/potpourri.html):
+The following example schematic shows the designations of the Pico pins, and has 3.3V level shifters whose outputs are in spec for TTL-level inputs - 74HCT/LS logic, the W65C22N VIA and the Z80 - but I think not CMOS-level inputs such as 74HC logic. The connectors indicate how I intend to connect the BeanPort to my [Bean65](https://github.com/PainfulDiodes/bean65) board which has a W65C22N VIA "slow bus" - using the same connector layout as [Garth Wilson's 6502 design](https://wilsonminesco.com/6502primer/potpourri.html):
 
 ![Schematic](./images/beanport_schematic.png)
 
