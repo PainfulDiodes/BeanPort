@@ -22,7 +22,7 @@ Bytes flow transparently with buffering in both directions, so you can run a vir
 
 ## Status
 
-Tested with a macOS host using the `screen` serial terminal emulator, and two homebrew target systems:
+Tested with a macOS host using the `screen` serial terminal emulator, in two setups:
 
 - 10MHz Z80 - as a port-addressed device (IORQ#)
 - 65C02 at up to 2.67MHz - as a memory-mapped device, with EN# gated on PHI2
