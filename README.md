@@ -62,6 +62,8 @@ Breadboard prototype connected to a Z80 bus, with the addition of a '138 for por
 
 ![Prototype](./images/beanport_z80_bus.jpg)
 
+![kicad/beanport.png](./kicad/beanport.png)
+
 ## Building and flashing
 
 The repo's uf2 files can be transferred to Pico with standard BOOTSEL. Binary location: `build/<target>/bin/beanport.uf2`
