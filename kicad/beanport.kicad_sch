@@ -5,6 +5,189 @@
 	(uuid "21a34662-80d2-4846-95a7-3b568b6a5490")
 	(paper "User" 180.34 109.22)
 	(lib_symbols
+		(symbol "Connector:Conn_01x02_Socket"
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "J"
+				(at 0 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_01x02_Socket"
+				(at 0 -5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x02, script generated"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_locked" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "Conn_01x02_Socket_1_1"
+				(polyline
+					(pts
+						(xy -1.27 0) (xy -0.508 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.27 -2.54) (xy -0.508 -2.54)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 0 -0.508)
+					(mid -0.5058 0)
+					(end 0 0.508)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 0 -3.048)
+					(mid -0.5058 -2.54)
+					(end 0 -2.032)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "Pin_1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "Pin_2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Connector_Generic:Conn_02x07_Odd_Even"
 			(pin_names
 				(offset 1.016)
@@ -2476,6 +2659,12 @@
 		(uuid "c81a3bb5-0a2e-404c-888b-ed73b02ac49c")
 	)
 	(junction
+		(at 15.24 21.59)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "2b0c78ce-3eaf-4aa3-8ac7-2786101328a7")
+	)
+	(junction
 		(at 68.58 25.4)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3171,6 +3360,16 @@
 	)
 	(wire
 		(pts
+			(xy 10.16 21.59) (xy 15.24 21.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "76f5fa85-acdf-4467-a5ca-2d3797860880")
+	)
+	(wire
+		(pts
 			(xy 34.29 66.04) (xy 49.53 66.04)
 		)
 		(stroke
@@ -3248,6 +3447,16 @@
 			(type default)
 		)
 		(uuid "95d6b196-3c80-4010-abdc-7749058e8d10")
+	)
+	(wire
+		(pts
+			(xy 15.24 21.59) (xy 15.24 24.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "973f4ca5-eef2-4d18-8ea1-73cae19c05c6")
 	)
 	(wire
 		(pts
@@ -3559,6 +3768,16 @@
 		)
 		(uuid "f4ea1ffa-ea00-4af5-bb45-214df9e3fb4c")
 	)
+	(label "GND"
+		(at 10.16 21.59 0)
+		(effects
+			(font
+				(size 1.0668 1.0668)
+			)
+			(justify left bottom)
+		)
+		(uuid "0518f80f-e6eb-4288-b15f-85416a7bfe5e")
+	)
 	(label "D7"
 		(at 63.5 48.26 0)
 		(effects
@@ -3640,7 +3859,7 @@
 		(uuid "14855624-c87a-4a0d-9283-3a3c449c10fb")
 	)
 	(label "VBUS"
-		(at 22.86 16.51 180)
+		(at 24.13 10.16 180)
 		(effects
 			(font
 				(size 1.0668 1.0668)
@@ -3720,7 +3939,7 @@
 		(uuid "57ae36f7-2d12-4a3c-93a7-160e837f3410")
 	)
 	(label "+5v"
-		(at 33.02 16.51 0)
+		(at 34.29 10.16 0)
 		(effects
 			(font
 				(size 1.0668 1.0668)
@@ -4484,6 +4703,88 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:Conn_01x02_Socket")
+		(at 20.32 21.59 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "752f785a-286b-469b-ab1b-3898f8a34a2b")
+		(property "Reference" "J3"
+			(at 21.59 21.5899 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Anchor Ground"
+			(at 21.59 24.1299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+			(at 20.32 21.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 20.32 21.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated"
+			(at 20.32 21.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "4e7ec293-e836-416e-8811-8eaedab6b784")
+		)
+		(pin "1"
+			(uuid "b3772562-a2a2-4643-9122-a5401c541ebf")
+		)
+		(instances
+			(project "beanport"
+				(path "/21a34662-80d2-4846-95a7-3b568b6a5490"
+					(reference "J3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 68.58 16.51 0)
 		(unit 1)
@@ -4819,7 +5120,7 @@
 	)
 	(symbol
 		(lib_id "Jumper:Jumper_2_Open")
-		(at 27.94 16.51 0)
+		(at 29.21 10.16 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4829,7 +5130,7 @@
 		(dnp no)
 		(uuid "a10cd4b2-5175-4dd4-9544-e9c70a71e5e6")
 		(property "Reference" "JP1"
-			(at 27.94 12.7 0)
+			(at 29.21 6.35 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4839,7 +5140,7 @@
 			)
 		)
 		(property "Value" "USB 5V"
-			(at 27.94 19.304 0)
+			(at 29.21 12.954 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4849,7 +5150,7 @@
 			)
 		)
 		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
-			(at 27.94 16.51 0)
+			(at 29.21 10.16 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4860,7 +5161,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 27.94 16.51 0)
+			(at 29.21 10.16 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4871,7 +5172,7 @@
 			)
 		)
 		(property "Description" "Jumper, 2-pole, open"
-			(at 27.94 16.51 0)
+			(at 29.21 10.16 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
