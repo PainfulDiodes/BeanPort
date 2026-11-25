@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "bean65_guide_temp")(type "KiCad")(uri "${KIPRJMOD}/bean65_guide_temp.pretty")(options "")(descr "Temporary Bean65 layout guide"))
+)
